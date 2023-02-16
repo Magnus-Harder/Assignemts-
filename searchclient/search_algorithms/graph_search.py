@@ -56,18 +56,24 @@ def graph_search(
     # For debugging, remember that you can use print(node, file=sys.stderr) to get a representation of the state.
     # You should also take a look at the frontiers in the strategies folder to see which methods they expose
 
-    return_fixed_solution = True
+    return_fixed_solution = False
     
     if return_fixed_solution:
         return True, [
             [MoveAction("S")],
-            [MoveAction("E")],
             [MoveAction("S")],
             [MoveAction("E")],
-            [MoveAction("N")],
-            [MoveAction("N")],
-            [MoveAction("W")],
-            [MoveAction("W")],
+            [MoveAction("E")],
+            [MoveAction("E")],
+            [MoveAction("E")],
+            [MoveAction("E")],
+            [MoveAction("E")],
+            [MoveAction("E")],
+            [MoveAction("E")],
+            [MoveAction("E")],
+            [MoveAction("E")],
+            [MoveAction("S")],
+            [MoveAction("S")],
         ]
     frontier.add(initial_state)
     expanded = set()
@@ -85,9 +91,30 @@ def graph_search(
 
         iterations += 1
 
-        # Your code here...
+        # If the frontier is empty, we have exhausted the search space without finding a solution
+        if frontier.is_empty():
+            break
 
-        raise NotImplementedError()
+        # Get the next node from the frontier
+        node = frontier.pop()
+
+        # If the node is a goal node, we have found a solution
+        if goal_description.is_goal(node):
+            print_search_status(expanded, frontier)
+            return True, node.extract_plan()
+
+        # If the node has not been expanded before, expand it
+        if node not in expanded:
+            expanded.add(node)
+            for action in node.get_applicable_actions(action_set):
+                child = node.result(action)
+                
+                # If the child is not already in the frontier or expanded, add it to the frontier
+                if child not in frontier.set and child not in expanded:
+                    frontier.add(child)
+
+    # If we reach this point, we have exhausted the frontier without finding a solution
+    return False, []
 
 
 # A global variable used to keep track of the start time of the current search
