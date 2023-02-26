@@ -34,14 +34,13 @@ class HospitalState:
 
     level = None
 
-    def __init__(
-        self,
-        level: h_level.HospitalLevel,
-        agent_positions: list[tuple[tuple[int, int], str]],
-        box_positions: list[tuple[tuple[int, int], str]],
-        parent = None,
-        action: actions.AnyAction = None
-    ):
+    def __init__(self,
+                level: h_level.HospitalLevel,
+                agent_positions: list[tuple[tuple[int, int], str]],
+                box_positions: list[tuple[tuple[int, int], str]],
+                parent = None,
+                action: actions.AnyAction = None
+        ):
         self.level = level
         self.agent_positions = agent_positions
         self.box_positions = box_positions

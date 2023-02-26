@@ -46,7 +46,6 @@ class HospitalGoalCountHeuristics:
 
 
 class HospitalAdvancedHeuristics:
-
     def __init__(self):
         pass
 
@@ -55,11 +54,9 @@ class HospitalAdvancedHeuristics:
         # pre-computing lookup tables or other acceleration structures
         self.exact_dist_preprocess(level)
 
-
     def h(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
-        return self.simple_dist_heuristic(state,goal_description)
-
-        
+        return self.exact_dist_lookup(state,goal_description)
+        #return self.simple_dist_heuristic(state,goal_description)
 
     def simple_dist_heuristic(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         agent_positions = state.agent_positions
@@ -88,7 +85,25 @@ class HospitalAdvancedHeuristics:
         return total_dist/len(agent_goals)
     
     def exact_dist_lookup(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
-        pass
+        agent_positions = state.agent_positions
+        agent_goals = goal_description.agent_goals
+        total_dist = 0
+
+        print(agent_positions)
+
+        for goal in agent_goals:
+            agent_tuple = agent_positions[int(goal[1])]
+            name = agent_tuple[1]
+            pos = agent_tuple[0]
+            total_dist += self.pre_calc_dists[pos[0]][pos[1]].agent_goal_dist[name]
+    
+        # for agent_tuple in agent_positions:
+            
+        #     name = agent_tuple[1]
+        #     pos = agent_tuple[0]
+        #     total_dist += self.pre_calc_dists[pos[0]][pos[1]].agent_goal_dist[name]
+
+        return total_dist/len(agent_goals)
     
     def exact_dist_preprocess(self, level: h_level.HospitalLevel):
         """
@@ -99,7 +114,7 @@ class HospitalAdvancedHeuristics:
         box_goal_num = len(level.box_goals)
         agent_goal_num = len(level.agent_goals)
 
-        self.pre_calc_dists = [deepcopy([DistanceNode(agent_goal_num,box_goal_num) for i in range(cols)]) for i in range(rows)]
+        self.pre_calc_dists = [deepcopy([DistanceNode(agent_goal_num,box_goal_num) for i in range(cols)]) for j in range(rows)]
 
         for i in range(1,rows-1):
             for j in range(1,cols-1):
@@ -132,7 +147,8 @@ class HospitalAdvancedHeuristics:
                         self.pre_calc_dists[i_add][j_add]
                     )
                 #print(i,j,self.pre_calc_dists[i][j].neighbors, file=sys.stderr)
-        
+
+
         for agent_index in range(agent_goal_num):
             goal = level.agent_goals[agent_index]
             pos_g = goal[0]
@@ -153,13 +169,13 @@ class HospitalAdvancedHeuristics:
                     if not neigh.agent_expanded[agent_g_name]:
                         neigh.agent_goal_dist[agent_g_name] = expanding_node.distance_to_agent(agent_g_name) + 1
                         neigh.agent_expanded[agent_g_name] = True
-                        queue.append(expanding_node)
+                        queue.append(neigh)
         
-        for i in range(1,rows-1):
-            for j in range(1,cols-1):
-                #print(i,j,self.pre_calc_dists[i][j].distance_to_agent(agent_g_name), agent_g_name,file=sys.stderr)
-                #print(len(self.pre_calc_dists[i][j].neighbors),file=sys.stderr)
-                pass
+        # for i in range(1,rows-1):
+        #     for j in range(1,cols-1):
+        #         #print(i,j,self.pre_calc_dists[i][j].distance_to_agent(agent_g_name), agent_g_name,file=sys.stderr)
+        #         #print(len(self.pre_calc_dists[i][j].neighbors),file=sys.stderr)
+        #         pass
         
                 
 
