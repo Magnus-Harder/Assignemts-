@@ -100,6 +100,8 @@ def graph_search(
 
         # If the node is a goal node, we have found a solution
         if goal_description.is_goal(node):
+            # Addded back in to get final expaned count
+            print_search_status(expanded, frontier)
             return True, node.extract_plan()
 
         # If the node has not been expanded before, expand it

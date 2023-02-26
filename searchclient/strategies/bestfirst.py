@@ -83,8 +83,9 @@ class FrontierBestFirst:
 
     def __init__(self):
         self.goal_description = None
-        # Your code here...
-        raise NotImplementedError()
+
+        self.pqueue = PriorityQueue()
+        self.set = set()
 
     def prepare(self, goal_description: h_goal_description.HospitalGoalDescription):
         self.goal_description = goal_description
@@ -92,30 +93,30 @@ class FrontierBestFirst:
         # searches, prepares must ensure that state is cleared.
         
         # Your code here...
-        raise NotImplementedError()
+        self.pqueue.clear()
+        self.set.clear()
 
     def f(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         raise Exception("FrontierBestFirst should not be directly used. Instead use a subclass overriding f()")
 
     def add(self, state: h_state.HospitalState):
-        # Your code here...
-        raise NotImplementedError()
+        ## Using evaluate/f when adding
+        self.pqueue.add(state, self.f(state, self.goal_description))
+        self.set.add(state)
 
     def pop(self) -> h_state.HospitalState:
-        # Your code here...
-        raise NotImplementedError()
+        popped_state = self.pqueue.pop()
+        self.set.remove(popped_state)
+        return popped_state
 
     def is_empty(self) -> bool:
-        # Your code here...
-        raise NotImplementedError()
+        return self.pqueue.size() == 0
 
     def size(self) -> int:
-        # Your code here...
-        raise NotImplementedError()
+        return self.pqueue.size()
 
     def contains(self, state: h_state.HospitalState) -> bool:
-        # Your code here...
-        raise NotImplementedError()
+        return state in self.set
 
 
 # The FrontierAStar and FrontierGreedy classes extend the FrontierBestFirst class, that is, they are
@@ -129,7 +130,10 @@ class FrontierAStar(FrontierBestFirst):
 
     def f(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         # Your code here...
-        raise NotImplementedError()
+        g = state.path_cost
+        h = self.heuristic.h(state, goal_description)
+
+        return g + h
 
 
 class FrontierGreedy(FrontierBestFirst):
@@ -140,4 +144,5 @@ class FrontierGreedy(FrontierBestFirst):
 
     def f(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         # Your code here...
-        raise NotImplementedError()
+        h = self.heuristic.h(state, goal_description)
+        return h
