@@ -17,6 +17,7 @@ from __future__ import annotations
 from utils import pos_add, pos_sub
 from typing import Union, Tuple
 import domains.hospital.state as h_state
+import sys
 
 direction_deltas = {
     'N': (-1, 0),
@@ -103,6 +104,128 @@ class MoveAction:
 
 AnyAction = Union[NoOpAction, MoveAction] # Only for type hinting
 
+class PushAction:
+
+    def __init__(self, agent_direction, box_direction):
+        self.agent_dir = agent_direction
+        self.box_dir = box_direction
+        self.agent_delta = direction_deltas.get(agent_direction)
+        self.box_delta = direction_deltas.get(box_direction)
+        self.name = f"Push({agent_direction},{box_direction})"
+
+    def calculate_positions(self, current_agent_position: Position) -> Position:
+        new_agent_position = pos_add(current_agent_position, self.agent_delta)
+        return new_agent_position, pos_add(new_agent_position, self.box_delta)
+
+    def is_applicable(self, agent_index: int, state: h_state.HospitalState) -> bool:
+        current_agent_position, _ = state.agent_positions[agent_index]
+        new_agent_position, new_box_position = self.calculate_positions(current_agent_position)
+
+        box_index,box_char = state.box_at(new_agent_position)
+        _ , agent_char = state.agent_at(current_agent_position)
+        if box_index == -1:
+            return False
+        
+        if state.level.colors[box_char] != state.level.colors[agent_char]:
+            return False 
+    
+
+        valid_move = state.free_at(new_box_position)
+              
+        return valid_move
+
+    def conflicts(self, agent_index: int, state: h_state.HospitalState) -> tuple[list[Position], list[Position]]:
+        current_agent_position, _ = state.agent_positions[agent_index]
+        new_agent_position, new_box_position = self.calculate_positions(current_agent_position)
+        box_index, _ = state.box_at(new_agent_position)
+
+        # New agent position is a destination because it is occupied before the action and occupied after the action.
+        destinations = [new_agent_position,new_box_position]
+        # New box position is a destination because it is unoccupied before the action and occupied after the action.
+        boxes_moved = [box_index]
+
+        return destinations, boxes_moved
+    
+    def result(self, agent_index: int, state: h_state.HospitalState):
+        
+
+        current_agent_position, agent_char = state.agent_positions[agent_index]
+        new_agent_position, new_box_position = self.calculate_positions(current_agent_position)
+        box_index, box_char = state.box_at(new_agent_position)
+
+        state.agent_positions[agent_index] = (new_agent_position, agent_char)
+        state.box_positions[box_index] = (new_box_position, box_char)
+
+
+
+    def __repr__(self):
+        return self.name
+
+
+class PullAction:
+
+    def __init__(self, agent_direction, box_direction):
+        self.agent_dir = agent_direction
+        self.box_dir = box_direction
+        self.agent_delta = direction_deltas.get(agent_direction)
+        self.box_delta = direction_deltas.get(box_direction)
+        self.name = f"Pull({agent_direction},{box_direction})"
+
+    def calculate_positions(self, current_agent_position: Position) -> Position:
+        box_position = pos_sub(current_agent_position, self.box_delta)
+        new_box_position = pos_add(box_position, self.box_delta)
+        new_agent_position = pos_add(current_agent_position, self.agent_delta)
+        return new_agent_position, new_box_position
+
+    def is_applicable(self, agent_index: int, state: h_state.HospitalState) -> bool:
+        current_agent_position, _ = state.agent_positions[agent_index]
+        new_agent_position, new_box_position = self.calculate_positions(current_agent_position)
+        box_position = pos_sub(current_agent_position, self.box_delta)
+
+        box_index,box_char = state.box_at(box_position)
+        _ , agent_char = state.agent_at(current_agent_position)
+        if box_index == -1:
+            return False
+        
+        if state.level.colors[box_char] != state.level.colors[agent_char]:
+            return False 
+
+        valid_move = state.free_at(new_agent_position)
+        if current_agent_position == (3,17):
+         print(" ",file=sys.stderr)
+         print(current_agent_position,file=sys.stderr)
+         print(valid_move,file=sys.stderr)
+         print((self.agent_dir,self.box_dir),file=sys.stderr)
+         print(box_position,file=sys.stderr)
+         print(new_box_position,file=sys.stderr)
+         print(new_agent_position,file=sys.stderr)
+
+    
+        return valid_move
+
+    def conflicts(self, agent_index: int, state: h_state.HospitalState) -> tuple[list[Position], list[Position]]:
+        current_agent_position, _ = state.agent_positions[agent_index]
+        new_box_position, new_agent_position = self.calculate_positions(current_agent_position)
+        box_index, _ = state.box_at(current_agent_position)
+
+        # New agent position is a destination because it is occupied before the action and occupied after the action.
+        destinations = [new_agent_position,new_box_position]
+        # New box position is a destination because it is unoccupied before the action and occupied after the action.
+        boxes_moved = [box_index]
+
+        return destinations, boxes_moved
+    
+    def result(self, agent_index: int, state: h_state.HospitalState):
+        
+        current_agent_position, agent_char = state.agent_positions[agent_index]
+        new_box_position, new_agent_position = self.calculate_positions(current_agent_position)
+        box_position = pos_sub(current_agent_position, self.box_delta)
+        box_index, box_char = state.box_at(box_position)
+
+        state.agent_positions[agent_index] = (new_agent_position, agent_char)
+        state.box_positions[box_index] = (new_box_position, box_char)
+    
+
 
 # An action library for the multi agent pathfinding
 DEFAULT_MAPF_ACTION_LIBRARY = [
@@ -121,7 +244,35 @@ DEFAULT_HOSPITAL_ACTION_LIBRARY = [
     MoveAction("S"),
     MoveAction("E"),
     MoveAction("W"),
+    
     # Add Push and Pull actions here
+    # Push actions (Cannot push box unto current agent position since this cell is not currently free)
+    PushAction("N", "N"),
+    PushAction("N", "E"),
+    PushAction("N", "W"),
+    PushAction("S", "S"),
+    PushAction("S", "E"),
+    PushAction("S", "W"),
+    PushAction("E", "N"),
+    PushAction("E", "S"),
+    PushAction("E", "E"),
+    PushAction("W", "N"),
+    PushAction("W", "S"),
+    PushAction("W", "W"),
+
+    # Pull actions (Same as push, cannot pull box and move agent in opposite directions)
+    PullAction("N", "N"),
+    PullAction("N", "E"),
+    PullAction("N", "W"),
+    PullAction("S", "S"),
+    PullAction("S", "E"),
+    PullAction("S", "W"),
+    PullAction("E", "N"),
+    PullAction("E", "S"),
+    PullAction("E", "E"),
+    PullAction("W", "N"),
+    PullAction("W", "S"),
+    PullAction("W", "W"),
 ]
 
 
