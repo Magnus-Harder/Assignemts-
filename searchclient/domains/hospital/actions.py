@@ -202,6 +202,9 @@ class PullAction:
 
     
         return valid_move
+    
+    def __repr__(self):
+        return self.name
 
     def conflicts(self, agent_index: int, state: h_state.HospitalState) -> tuple[list[Position], list[Position]]:
         current_agent_position, _ = state.agent_positions[agent_index]

@@ -26,6 +26,9 @@ def classic_agent_type(level, initial_state, action_library, goal_description, f
         print("Unable to solve level.", file=sys.stderr)
         return
 
+    #debuging
+    print(f"--PLAN--\n", plan,"\n", file=sys.stderr)
+    
     print(f"Found solution of length {len(plan)}", file=sys.stderr)
 
     for joint_action in plan:

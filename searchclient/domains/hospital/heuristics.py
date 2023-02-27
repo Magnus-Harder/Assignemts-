@@ -68,7 +68,7 @@ class HospitalGoalCountHeuristics:
 
 
 
-advanced_type = "simple"
+advanced_type = "simple" #"exact" or anything elso for "simple"
 class HospitalAdvancedHeuristics:
     def __init__(self):
         pass
@@ -76,7 +76,7 @@ class HospitalAdvancedHeuristics:
     def preprocess(self, level: h_level.HospitalLevel):
         # This function will be called a single time prior to the search allowing us to preprocess the level such as
         # pre-computing lookup tables or other acceleration structures
-        if advanced_type == "exact":
+        if advanced_type[:5] == "exact":
             self.exact_dist_preprocess(level)
         else:
             pass
@@ -84,6 +84,8 @@ class HospitalAdvancedHeuristics:
     def h(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         if advanced_type == "exact":
             return self.exact_dist_lookup(state,goal_description)
+        elif advanced_type == "exact_min":
+            return self.exact_dist_lookup_min(state,goal_description)
         else:
             return self.simple_dist_heuristic(state,goal_description)
 
@@ -142,20 +144,71 @@ class HospitalAdvancedHeuristics:
         box_positions = state.box_positions
         box_goals = goal_description.box_goals
         total_dist = 0
-
-        for agent_tuple in agent_positions:
-            name = agent_tuple[1]
-            pos = agent_tuple[0]
-            if not name in self.agent_names:
-                continue
-            total_dist += self.pre_calc_dists[pos[0]][pos[1]].distance_to(name)
         
+        def loop_add_to_total(positions):
+            function_dist = 0
+            for tuple in positions:
+                name = tuple[1]
+                pos = tuple[0]
+                if not name in self.all_names:
+                    continue
+                function_dist += self.pre_calc_dists[pos[0]][pos[1]].distance_to(name)
+            return function_dist
+        
+        total_dist += loop_add_to_total(agent_positions)
+        total_dist += loop_add_to_total(box_positions)
+        
+        """
         for box_tuple in box_positions:
             name = box_tuple[1]
             pos = box_tuple[0]
             if not name in self.box_names:
                 continue
             total_dist += self.pre_calc_dists[pos[0]][pos[1]].distance_to(name)
+        """
+
+        return total_dist/(len(agent_goals)+len(box_goals))
+
+    def exact_dist_lookup_min(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
+        agent_positions = state.agent_positions
+        agent_goals = goal_description.agent_goals
+
+        box_positions = state.box_positions
+        box_goals = goal_description.box_goals
+        total_dist = 0
+        
+        goals_min = {a_goal[1]: APPROX_INFINITY for a_goal in agent_goals}
+        goals_min.update({b_goal[1]: APPROX_INFINITY for b_goal in box_goals})
+        def loop_add_min_to_total(positions):
+            function_dist = 0
+            for tuple in positions:
+                name = tuple[1]
+                pos = tuple[0]
+                if not name in self.all_names:
+                    continue
+                
+                curr_dist = self.pre_calc_dists[pos[0]][pos[1]].distance_to(name)
+                goals_min[name] = min(goals_min[name], curr_dist)
+            
+            for name_n in self.all_names:
+                print(name_n,goals_min,file=sys.stderr)
+                new_dist = goals_min[name_n]
+                if new_dist == APPROX_INFINITY:
+                    continue
+                function_dist += new_dist
+            return function_dist
+        
+        total_dist += loop_add_min_to_total(agent_positions)
+        total_dist += loop_add_min_to_total(box_positions)
+        
+        """
+        for box_tuple in box_positions:
+            name = box_tuple[1]
+            pos = box_tuple[0]
+            if not name in self.box_names:
+                continue
+            total_dist += self.pre_calc_dists[pos[0]][pos[1]].distance_to(name)
+        """
 
         return total_dist/(len(agent_goals)+len(box_goals))
     
@@ -172,6 +225,7 @@ class HospitalAdvancedHeuristics:
 
         self.box_names = set([b_g[1] for b_g in level.box_goals])
         self.agent_names = set([a_g[1] for a_g in level.agent_goals])
+        self.all_names = set([b_g[1] for b_g in level.box_goals]+[a_g[1] for a_g in level.agent_goals])
         self.pre_calc_dists = [deepcopy([DistanceNode(level.agent_goals, level.box_goals) for i in range(cols)]) for j in range(rows)]
         ####
 
@@ -207,27 +261,37 @@ class HospitalAdvancedHeuristics:
                     )
                 #print(i,j,self.pre_calc_dists[i][j].neighbors, file=sys.stderr)
         
+        def expand_distances(goals_in, box = False):
+            for goal in goals_in:
+                pos_g = goal[0]
+                agent_g_name = goal[1]
 
-        for goal in level.agent_goals:
-            pos_g = goal[0]
-            agent_g_name = goal[1]
+                positive_goal = goal[2] #Not yet used
 
-            positive_goal = goal[2] #Not yes used
+                queue = deque()
+                start_node = self.pre_calc_dists[pos_g[0]][pos_g[1]]
 
-            queue = deque()
-            start_node = self.pre_calc_dists[pos_g[0]][pos_g[1]]
+                start_node.expand_node(agent_g_name, 0)
+                queue.append(start_node)
+                
+                print(goals_in,file=sys.stderr)
 
-            start_node.expand_node(agent_g_name, 0)
-            queue.append(start_node)
-
-            while len(queue) != 0:
-                expanding_node = queue.popleft()
-                for neigh in expanding_node.neighbors:
-                    if not neigh.agent_expanded[agent_g_name]:
-                        new_distance = (expanding_node.agent_goal_dist[agent_g_name] + 1)
-                        neigh.expand_node(agent_g_name, new_distance)
-                        queue.append(neigh)
+                while len(queue) != 0:
+                    expanding_node = queue.popleft()
+                    for neigh in expanding_node.neighbors:
+                        if box:
+                            if not neigh.box_expanded[agent_g_name]:
+                                new_distance = (expanding_node.box_goal_dist[agent_g_name] + 1)
+                                neigh.expand_node(agent_g_name, new_distance, box = box)
+                                queue.append(neigh)
+                        else:
+                            if not neigh.agent_expanded[agent_g_name]:
+                                new_distance = (expanding_node.agent_goal_dist[agent_g_name] + 1)
+                                neigh.expand_node(agent_g_name, new_distance)
+                                queue.append(neigh)
         
+        expand_distances(level.agent_goals)
+        expand_distances(level.box_goals, box=True)        
         # for i in range(1,rows-1):
         #     for j in range(1,cols-1):
         #         #print(i,j,self.pre_calc_dists[i][j].distance_to_agent(agent_g_name), agent_g_name,file=sys.stderr)
@@ -265,10 +329,10 @@ class DistanceNode:
             return self.box_goal_dist[name]
 
     #Expanding node when first calculating distances
-    def expand_node(self, name, new_dist):
+    def expand_node(self, name, new_dist, box=False):
         if '0' <= name <= '9':
             self.agent_goal_dist[name] = new_dist
             self.agent_expanded[name] = True
-        if 'A' <= name <= 'Z':
+        if ('A' <= name <= 'Z') or box:
             self.box_goal_dist[name] = new_dist
             self.box_expanded[name] = True
