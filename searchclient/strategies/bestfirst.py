@@ -18,6 +18,8 @@ import itertools
 import domains.hospital.goal_description as h_goal_description
 import domains.hospital.state as h_state
 
+import sys
+
 # Here we define a priority queue which allows the priority of elements to be updated in constant time.
 # This priority queue is therefore suitable for usage as the frontier in a best-first search.
 class PriorityQueue:
@@ -133,6 +135,7 @@ class FrontierAStar(FrontierBestFirst):
         g = state.path_cost
         h = self.heuristic.h(state, goal_description)
 
+        #print(state, h, file=sys.stderr)
         return g + h
 
 
@@ -145,4 +148,6 @@ class FrontierGreedy(FrontierBestFirst):
     def f(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         # Your code here...
         h = self.heuristic.h(state, goal_description)
+        
+        #print(state, h, file=sys.stderr)
         return h

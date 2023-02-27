@@ -30,9 +30,12 @@ class HospitalGoalCountHeuristics:
     def preprocess(self, level: h_level.HospitalLevel):
         # This function will be called a single time prior to the search allowing us to preprocess the level such as
         # pre-computing lookup tables or other acceleration structures
-        pass
+        self.num_box_goals = level.num_box_goals
 
     def h(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
+        return self.simple_all_subgoal_count(state,goal_description)
+
+    def simple_all_subgoal_count(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         goal_count = 0
         sub_goal_num = goal_description.num_sub_goals()
         for index in range(sub_goal_num):
@@ -44,7 +47,28 @@ class HospitalGoalCountHeuristics:
         # -- not [enter correct term] heuristic if not divided
         return goal_count/sub_goal_num
 
+    def box_first_subgoal_count(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
+        sub_goal_num = goal_description.num_sub_goals()
+        goal_count = sub_goal_num
 
+        for index in range(self.num_box_goals):
+            sub_goal = goal_description.get_sub_goal(index)
+            if not sub_goal.is_goal(state):
+                goal_count -= 1 #THIS ONE STARTS AT MAX (and doesnt subtract the agents untill the boxes are done)
+        
+        if goal_count <= self.num_box_goals:
+            for index in range(self.num_box_goals,sub_goal_num):
+                sub_goal = goal_description.get_sub_goal(index)
+                if not sub_goal.is_goal(state):
+                    goal_count -= 1 #THIS ONE STARTS AT MAX (and doesnt subtract the agents untill the boxes are done)
+
+        # IF NOT DIVIDED A* WILL NOT FIND OPTIMAL
+        # -- not [enter correct term] heuristic if not divided
+        return goal_count/sub_goal_num
+
+
+
+advanced_type = "simple"
 class HospitalAdvancedHeuristics:
     def __init__(self):
         pass
@@ -52,17 +76,44 @@ class HospitalAdvancedHeuristics:
     def preprocess(self, level: h_level.HospitalLevel):
         # This function will be called a single time prior to the search allowing us to preprocess the level such as
         # pre-computing lookup tables or other acceleration structures
-        self.exact_dist_preprocess(level)
+        if advanced_type == "exact":
+            self.exact_dist_preprocess(level)
+        else:
+            pass
 
     def h(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
-        return self.exact_dist_lookup(state,goal_description)
-        #return self.simple_dist_heuristic(state,goal_description)
+        if advanced_type == "exact":
+            return self.exact_dist_lookup(state,goal_description)
+        else:
+            return self.simple_dist_heuristic(state,goal_description)
 
     def simple_dist_heuristic(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         agent_positions = state.agent_positions
+        box_positions = state.box_positions
         agent_goals = goal_description.agent_goals
+        box_goals = goal_description.box_goals
         total_dist = 0
 
+        for box_goal in box_goals:
+            pos_bg = box_goal[0]
+            bg_name = box_goal[1]
+            positive_bgoal = box_goal[2]
+            for box_tuple in box_positions:
+                if box_tuple[1] != bg_name:
+                    continue
+                x_dist = abs(box_tuple[0][0] - pos_bg[0])
+                y_dist = abs(box_tuple[0][1] - pos_bg[1])
+
+                manhattan_dist = x_dist + y_dist
+                if positive_bgoal:
+                    total_dist += manhattan_dist
+                elif manhattan_dist < 1:
+                    total_dist += 1 #Adding one for penalty just for now
+        
+        if total_dist >= 1:
+            return total_dist/len(box_goals)
+        
+        #Only go to agent dist after boxes are in place
         for goal in agent_goals:
             pos_g = goal[0]
             agent_g_name = goal[1]
@@ -77,33 +128,36 @@ class HospitalAdvancedHeuristics:
                 manhattan_dist = x_dist + y_dist
                 if positive_goal:
                     total_dist += manhattan_dist
-                else:
-                    total_dist -= manhattan_dist
+                elif manhattan_dist < 1:
+                    total_dist += 1 #Adding one for penalty just for now 
 
         # IF NOT DIVIDED A* WILL NOT FIND OPTIMAL
         # -- not [enter correct term] heuristic if not divided
-        return total_dist/len(agent_goals)
+        return total_dist/(len(agent_goals)+len(box_goals))
     
     def exact_dist_lookup(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         agent_positions = state.agent_positions
         agent_goals = goal_description.agent_goals
+
+        box_positions = state.box_positions
+        box_goals = goal_description.box_goals
         total_dist = 0
 
-        print(agent_positions)
-
-        for goal in agent_goals:
-            agent_tuple = agent_positions[int(goal[1])]
+        for agent_tuple in agent_positions:
             name = agent_tuple[1]
             pos = agent_tuple[0]
-            total_dist += self.pre_calc_dists[pos[0]][pos[1]].agent_goal_dist[name]
-    
-        # for agent_tuple in agent_positions:
-            
-        #     name = agent_tuple[1]
-        #     pos = agent_tuple[0]
-        #     total_dist += self.pre_calc_dists[pos[0]][pos[1]].agent_goal_dist[name]
+            if not name in self.agent_names:
+                continue
+            total_dist += self.pre_calc_dists[pos[0]][pos[1]].distance_to(name)
+        
+        for box_tuple in box_positions:
+            name = box_tuple[1]
+            pos = box_tuple[0]
+            if not name in self.box_names:
+                continue
+            total_dist += self.pre_calc_dists[pos[0]][pos[1]].distance_to(name)
 
-        return total_dist/len(agent_goals)
+        return total_dist/(len(agent_goals)+len(box_goals))
     
     def exact_dist_preprocess(self, level: h_level.HospitalLevel):
         """
@@ -111,10 +165,15 @@ class HospitalAdvancedHeuristics:
         """
         rows = len(level.walls)
         cols = len(level.walls[0])
-        box_goal_num = len(level.box_goals)
-        agent_goal_num = len(level.agent_goals)
 
-        self.pre_calc_dists = [deepcopy([DistanceNode(agent_goal_num,box_goal_num) for i in range(cols)]) for j in range(rows)]
+        agent_goal_num = len(level.agent_goals)
+        
+        # Object "global" variables #
+
+        self.box_names = set([b_g[1] for b_g in level.box_goals])
+        self.agent_names = set([a_g[1] for a_g in level.agent_goals])
+        self.pre_calc_dists = [deepcopy([DistanceNode(level.agent_goals, level.box_goals) for i in range(cols)]) for j in range(rows)]
+        ####
 
         for i in range(1,rows-1):
             for j in range(1,cols-1):
@@ -147,28 +206,26 @@ class HospitalAdvancedHeuristics:
                         self.pre_calc_dists[i_add][j_add]
                     )
                 #print(i,j,self.pre_calc_dists[i][j].neighbors, file=sys.stderr)
+        
 
-
-        for agent_index in range(agent_goal_num):
-            goal = level.agent_goals[agent_index]
+        for goal in level.agent_goals:
             pos_g = goal[0]
             agent_g_name = goal[1]
-            positive_goal = goal[2]
+
+            positive_goal = goal[2] #Not yes used
 
             queue = deque()
             start_node = self.pre_calc_dists[pos_g[0]][pos_g[1]]
-            #print(pos_g,agent_g_name,file=sys.stderr)
-            
-            start_node.agent_expanded[agent_g_name] = True
-            start_node.agent_goal_dist[agent_g_name] = 0
+
+            start_node.expand_node(agent_g_name, 0)
             queue.append(start_node)
 
             while len(queue) != 0:
                 expanding_node = queue.popleft()
                 for neigh in expanding_node.neighbors:
                     if not neigh.agent_expanded[agent_g_name]:
-                        neigh.agent_goal_dist[agent_g_name] = expanding_node.distance_to_agent(agent_g_name) + 1
-                        neigh.agent_expanded[agent_g_name] = True
+                        new_distance = (expanding_node.agent_goal_dist[agent_g_name] + 1)
+                        neigh.expand_node(agent_g_name, new_distance)
                         queue.append(neigh)
         
         # for i in range(1,rows-1):
@@ -176,9 +233,6 @@ class HospitalAdvancedHeuristics:
         #         #print(i,j,self.pre_calc_dists[i][j].distance_to_agent(agent_g_name), agent_g_name,file=sys.stderr)
         #         #print(len(self.pre_calc_dists[i][j].neighbors),file=sys.stderr)
         #         pass
-        
-                
-
 
         for agent_index in range(agent_goal_num):
             goal = level.agent_goals[agent_index]
@@ -189,19 +243,32 @@ class HospitalAdvancedHeuristics:
 class DistanceNode:
     def __init__(
         self,
-        agent_goal_num: int,
-        box_goal_num: int,
+        agent_goals,
+        box_goals,
     ) -> None:
-        self.agent_goal_dist = {f"{i}": -1 for i in range(agent_goal_num)}
-        self.box_goal_dist = [(APPROX_INFINITY,"-1")]*box_goal_num
-        self.agent_expanded = {f"{i}": False for i in range(agent_goal_num)}
-        self.box_expanded = [False]*box_goal_num
+        self.agent_goal_dist = {a_goal[1]: -1 for a_goal in agent_goals}
+        self.box_goal_dist = {b_goal[1]: -1 for b_goal in box_goals}
+
+        self.agent_expanded = {a_goal[1]: False for a_goal in agent_goals}
+        self.box_expanded = {b_goal[1]: False for b_goal in box_goals}
+
         self.neighbors = []
+
     
     def add_neighbor(self,added_neighbor):
         self.neighbors.append(added_neighbor)
     
-    def distance_to_agent(self, agent_string):
-        agent_dist = self.agent_goal_dist[agent_string]
-        #assert agent_dist_tuple[1] == agent_string, "Agents not indexes in same order always"
-        return agent_dist
+    def distance_to(self, name: str):
+        if '0' <= name <= '9':
+            return self.agent_goal_dist[name]
+        if 'A' <= name <= 'Z':
+            return self.box_goal_dist[name]
+
+    #Expanding node when first calculating distances
+    def expand_node(self, name, new_dist):
+        if '0' <= name <= '9':
+            self.agent_goal_dist[name] = new_dist
+            self.agent_expanded[name] = True
+        if 'A' <= name <= 'Z':
+            self.box_goal_dist[name] = new_dist
+            self.box_expanded[name] = True
