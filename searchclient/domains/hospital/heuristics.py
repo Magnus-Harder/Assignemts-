@@ -68,23 +68,26 @@ class HospitalGoalCountHeuristics:
 
 
 
-advanced_type = "simple" #"exact" or anything elso for "simple"
+
 class HospitalAdvancedHeuristics:
-    def __init__(self):
+    def __init__(self, advanced_type):
+        self.advanced_type = advanced_type
         pass
 
     def preprocess(self, level: h_level.HospitalLevel):
         # This function will be called a single time prior to the search allowing us to preprocess the level such as
         # pre-computing lookup tables or other acceleration structures
-        if advanced_type[:5] == "exact":
+        if self.advanced_type == "simple":
+            print("=========")
+        if self.advanced_type[:5] == "exact":
             self.exact_dist_preprocess(level)
         else:
             pass
 
     def h(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
-        if advanced_type == "exact":
+        if self.advanced_type == "exact":
             return self.exact_dist_lookup(state,goal_description)
-        elif advanced_type == "exact_min":
+        elif self.advanced_type == "exact_min":
             return self.exact_dist_lookup_min(state,goal_description)
         else:
             return self.simple_dist_heuristic(state,goal_description)
@@ -191,7 +194,7 @@ class HospitalAdvancedHeuristics:
                 goals_min[name] = min(goals_min[name], curr_dist)
             
             for name_n in self.all_names:
-                print(name_n,goals_min,file=sys.stderr)
+                #print(name_n,goals_min,file=sys.stderr)
                 new_dist = goals_min[name_n]
                 if new_dist == APPROX_INFINITY:
                     continue

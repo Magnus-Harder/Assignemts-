@@ -57,6 +57,16 @@ def parse_command_line_arguments():
     heuristic_group.add_argument('-advancedheuristic', action='store_const', dest='heuristic', const='advanced',
                                  help='Use an advanced heuristic.')
 
+    # "-" Adding my own for the advanced heuristics "-"
+    heuristic_group = parser.add_mutually_exclusive_group()
+    heuristic_group.add_argument('--simple', action='store_const', dest='type', 
+            const='simple', help='no')
+    heuristic_group.add_argument('--exact', action='store_const', dest='type', 
+            const='exact', help='no')
+    heuristic_group.add_argument('--exact_min', action='store_const', dest='type', 
+            const='exact_min', help='no')
+    
+
     args = parser.parse_args()
 
     # Set max memory usage allowed (soft limit).
@@ -67,15 +77,15 @@ def parse_command_line_arguments():
     max_memory_gb = int(max_memory_gb_match.group(1))
     memory.max_usage = max_memory_gb * 1024 * 1024 * 1024
 
-    return args.strategy, args.heuristic
+    return args.strategy, args.heuristic, args.type
 
 
 if __name__ == '__main__':
 
-    strategy_name, heuristic_name = parse_command_line_arguments()
+    strategy_name, heuristic_name, type_group = parse_command_line_arguments()
 
     # Construct client name by removing all missing arguments and joining them together into a single string
-    name_components = [strategy_name, heuristic_name]
+    name_components = [strategy_name, heuristic_name, type_group]
     client_name = " ".join(filter(lambda name: name is not None, name_components))
 
     # Send client name to server
@@ -104,7 +114,7 @@ if __name__ == '__main__':
         if heuristic_name == 'goalcount':
             heuristic = HospitalGoalCountHeuristics()
         elif heuristic_name == 'advanced':
-            heuristic = HospitalAdvancedHeuristics()
+            heuristic = HospitalAdvancedHeuristics(type_group)
 
     # Some heuristics needs to preprocess the level to pre-compute distance lookup tables, matchings, etc.
     if heuristic is not None:
