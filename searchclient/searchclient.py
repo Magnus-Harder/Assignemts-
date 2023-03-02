@@ -65,6 +65,14 @@ def parse_command_line_arguments():
             const='exact', help='no')
     heuristic_group.add_argument('--exact_min', action='store_const', dest='type', 
             const='exact_min', help='no')
+    heuristic_group.add_argument('--simple_fixed', action='store_const', dest='type', 
+            const='simple_fixed', help='no')
+    heuristic_group.add_argument('--exact_fixed', action='store_const', dest='type', 
+            const='exact_fixed', help='no')
+    heuristic_group.add_argument('--exact_complex', action='store_const', dest='type', 
+            const='exact_complex', help='no')
+    heuristic_group.add_argument('--exact_complex_improved', action='store_const', dest='type', 
+            const='exact_complex_improved', help='no')
     
 
     args = parser.parse_args()
