@@ -102,6 +102,10 @@ class HospitalAdvancedHeuristics:
             return self.complex_lookup_min(state,goal_description)
         elif self.advanced_type == "exact_complex_improved":
             return self.complex_lookup_improved(state,goal_description)
+        elif self.advanced_type == "exact_ican_improved":
+            return self.ican_improved(state,goal_description)
+        elif self.advanced_type == "exact_ican":
+            return self.ican(state,goal_description)
         else:
             return self.simple_dist_heuristic(state,goal_description)
 
@@ -312,7 +316,7 @@ class HospitalAdvancedHeuristics:
         #total_dist += loop_add_min_to_total(agent_positions)
         total_dist += loop_add_min_to_total(box_positions)
 
-        only_closets = False
+        only_closets = True
         agent_to_box_min = APPROX_INFINITY
         for closest_dist_triplet in goals_min:
             if '0' <= closest_dist_triplet[0] <= '9':
