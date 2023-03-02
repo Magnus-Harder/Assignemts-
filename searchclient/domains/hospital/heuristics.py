@@ -312,6 +312,7 @@ class HospitalAdvancedHeuristics:
         #total_dist += loop_add_min_to_total(agent_positions)
         total_dist += loop_add_min_to_total(box_positions)
 
+        only_closets = False
         agent_to_box_min = APPROX_INFINITY
         for closest_dist_triplet in goals_min:
             if '0' <= closest_dist_triplet[0] <= '9':
@@ -334,11 +335,12 @@ class HospitalAdvancedHeuristics:
             if closest_dist_triplet[1] < 2: #If near in goal
                 # < 1 would encourage the greedy to pull it out of the goal to get the discount from being close to it:/
                 continue
-            #total_dist += closets_agent_dist
-            if closets_agent_dist < agent_to_box_min:
+            if not only_closets:
+                total_dist += closets_agent_dist
+            elif closets_agent_dist < agent_to_box_min:
                 agent_to_box_min = closets_agent_dist
 
-        if agent_to_box_min < APPROX_INFINITY:
+        if only_closets and agent_to_box_min < APPROX_INFINITY:
             total_dist += agent_to_box_min
 
         return total_dist/(len(agent_positions)+len(box_goals))
