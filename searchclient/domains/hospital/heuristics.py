@@ -106,6 +106,8 @@ class HospitalAdvancedHeuristics:
             return self.ican_improved(state,goal_description)
         elif self.advanced_type == "exact_ican":
             return self.ican(state,goal_description)
+        elif self.advanced_type == "exact_boxes_improved":
+            return self.complex_lookup_improved(state,goal_description, only_boxes=True)
         else:
             return self.simple_dist_heuristic(state,goal_description)
 
@@ -274,7 +276,7 @@ class HospitalAdvancedHeuristics:
 
         return total_dist/(len(agent_positions)+len(box_goals))
 
-    def complex_lookup_improved(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
+    def complex_lookup_improved(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription, only_boxes = False, total= False) -> int:
         agent_positions = state.agent_positions
         agent_goals = goal_description.agent_goals
 
@@ -297,12 +299,14 @@ class HospitalAdvancedHeuristics:
                     continue
                 for goal_index in range(len(goals_min)):
                     # if a clos
-                    if goals_found_min[goal_index] or (goals_min[goal_index][0] != name):
+                    if (goals_min[goal_index][0] != name):
                         continue
                     closets_goal = [-1,"",APPROX_INFINITY]
                     curr_dist = self.pre_calc_dists[pos[0]][pos[1]].distance_to_improved(goal_index)
                     ###print("--\n",goal_index,"-", curr_dist,file=sys.stderr)
-                    if goals_min[goal_index][1] > curr_dist:
+                    if total:
+                        goals_min[goal_index][1] += curr_dist
+                    elif goals_min[goal_index][1] > curr_dist:
                         goals_min[goal_index] = [goals_min[goal_index][0],curr_dist,pos]
             
             ###print("--\n", goals_min,file=sys.stderr)
@@ -315,8 +319,13 @@ class HospitalAdvancedHeuristics:
         
         #total_dist += loop_add_min_to_total(agent_positions)
         total_dist += loop_add_min_to_total(box_positions)
+        
+        if only_boxes: #Ignores agent distance to boxes
+            if total:
+                return total_dist/(len(box_goals) + len(box_positions))
+            return total_dist/(len(box_goals)) #total_dist/(len(agent_positions)+len(box_goals))
 
-        only_closets = True
+        only_closets = False
         agent_to_box_min = APPROX_INFINITY
         for closest_dist_triplet in goals_min:
             if '0' <= closest_dist_triplet[0] <= '9':
@@ -336,7 +345,7 @@ class HospitalAdvancedHeuristics:
                     closets_agent_dist = manhattan_dist
             if closets_agent_dist == APPROX_INFINITY:
                 continue
-            if closest_dist_triplet[1] < 2: #If near in goal
+            if closest_dist_triplet[1] < (1 + only_boxes): #If near in goal
                 # < 1 would encourage the greedy to pull it out of the goal to get the discount from being close to it:/
                 continue
             if not only_closets:

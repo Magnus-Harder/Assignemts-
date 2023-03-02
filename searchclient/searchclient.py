@@ -77,6 +77,10 @@ def parse_command_line_arguments():
             const='exact_ican_improved', help='no')
     heuristic_group.add_argument('--exact_ican', action='store_const', dest='type', 
             const='exact_ican', help='no')
+    heuristic_group.add_argument('--exact_boxes_improved', action='store_const', dest='type', 
+            const='exact_boxes_improved', help='no')
+    
+
     
 
     args = parser.parse_args()
