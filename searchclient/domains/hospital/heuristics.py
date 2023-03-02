@@ -21,6 +21,8 @@ import domains.hospital.level as h_level
 
 from collections import deque
 from copy import deepcopy
+import copy
+from collections import defaultdict
 
 class HospitalGoalCountHeuristics:
 
@@ -110,7 +112,7 @@ class HospitalAdvancedHeuristics:
         elif self.advanced_type == "exact_boxes_improved":
             return self.complex_lookup_improved(state,goal_description, only_boxes=True)
         elif self.advanced_type == "exact_final_improved":
-            return self.complex_lookup_improved(state,goal_description)
+            return self.final(state,goal_description)
         else:
             return self.simple_dist_heuristic(state,goal_description)
 
@@ -317,7 +319,7 @@ class HospitalAdvancedHeuristics:
                 new_dist = goals_min[goal_index][1]
                 if new_dist == APPROX_INFINITY:
                     continue
-                function_dist += new_dist
+                function_dist += new_dist*new_dist
             return function_dist
         
         #total_dist += loop_add_min_to_total(agent_positions)
@@ -361,50 +363,91 @@ class HospitalAdvancedHeuristics:
 
         return total_dist/(len(agent_positions)+len(box_goals))
     
-    def final(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription, only_boxes = False, total= False) -> int:
+    def final(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription, agent_div = 12) -> int:
         agent_positions = state.agent_positions
         agent_goals = goal_description.agent_goals
-        agent_goal_num = len(agent_goals)
+
         box_positions = state.box_positions
         box_goals = goal_description.box_goals
-
         total_dist = 0
         
-        if not self.ran_best_candidate:
-            goals_best_cand = [[a_goal[1], APPROX_INFINITY,-1] for a_goal in agent_goals]
-            goals_best_cand.extend([[b_goal[1],APPROX_INFINITY,-1] for b_goal in box_goals])
-            import copy
-            all_positions = copy(agent_positions).extend(box_positions)
-            for goal_index, cand_quart in enumerate(goals_best_cand):
-                best_distance = APPROX_INFINITY
-                for obj_indx, tuple in enumerate(all_positions):
-                    name = tuple[1]
-                    pos = tuple[0]
+        goals = goal_description.goals
+        agent_goal_num = len(agent_goals)
 
-                    if not name in self.all_names: #If not a goal
+        
+        def loop_to_list(positions):
+            goal_of_chars = {k:[] for k in self.n_surpluss.keys()}
+            for obj_idx, tuple in enumerate(positions):
+                curr_min = APPROX_INFINITY
+                curr_min_pos = [0,0]
+                name = tuple[1]
+                pos = tuple[0]
+                if not name in self.all_names:
+                    continue
+                for goal_index, goal in enumerate(goals):
+                    #goal_index = (goal_index - agent_goal_num)%len(goals) # I numbered them the wrong way
+                    if (goal[1] != name):
                         continue
                     curr_dist = self.pre_calc_dists[pos[0]][pos[1]].distance_to_improved(goal_index)
-                    if curr_dist < best_distance:
-                        cand_quart[2] = obj_indx
-                        cand_quart[1] = curr_dist
-        
-            self.goals_best_cand = goals_best_cand
-            self.ran_best_candidate = True
+                    
+                    if curr_min > curr_dist:
+                        curr_min = curr_dist
+                        curr_min_pos = pos
+                goal_of_chars[name].append((curr_min_pos, curr_min))
 
-        for goal_index, cand_quart in enumerate(self.goals_best_cand):
-            obj_index = cand_quart[2]
-            if goal_index > agent_goal_num:
-                tuple = box_positions[obj_index - agent_goal_num]
-            else:
-                tuple = agent_positions[obj_index]
-            pos = tuple[0]
-            curr_dist = self.pre_calc_dists[pos[0]][pos[1]].distance_to_improved(goal_index)
-
-            total_dist += curr_dist
+            for name_sur, num in self.n_surpluss.items():
+                if num > 0:
+                    yes = goal_of_chars[name_sur]
+                    #print(yes, file=sys.stderr)
+                    yes.sort(key = lambda x: x[1])
+                    #print(yes[:num], file=sys.stderr)
+                    goal_of_chars[name_sur] = yes[:-num] #removing largest dists above num of goals
+            list_out = []
+            for val in goal_of_chars.values():
+                list_out.extend(val)
+            return list_out
         
-        return total_dist/(len(self.goals_best_cand))
+        list_dist = loop_to_list(box_positions)
+
+        agnets_dist = [[-1,APPROX_INFINITY]]*10
+        list_dist.sort(key = lambda x: x[1], reverse=True)
+        agent_queue = deque()
+        for i in range(len(agent_positions)):
+            agent_queue.append(i)
+        while len(agent_queue) != 0:
+            curr_agent = agent_queue.popleft()
+
+            pos = agent_positions[curr_agent][0]
+
+            for tupple_i, tuple_dist in enumerate(list_dist):
+                pos_box = tuple_dist[0]
+                #print(pos[0],list_dist, file=sys.stderr)
+                x_dist = abs(pos[0] - pos_box[0])
+                y_dist = abs(pos[1] - pos_box[1])
+                manhattan_dist = x_dist + y_dist
+
+                for j in range(len(agent_positions)):
+                    if agnets_dist[j][0] == tupple_i:
+                        if agnets_dist[j][1] <= manhattan_dist:
+                            break
+                        else:
+                            agent_queue.append(j)
+                else:
+                    agnets_dist[curr_agent] = [tupple_i,manhattan_dist]
+                    break
+
+        #print(agnets_dist[:len(agent_positions)], file=sys.stderr)
+        for tup in agnets_dist[:len(agent_positions)]:
+            total_dist += tup[1]/agent_div
+        for tup in list_dist:
+            total_dist += tup[1]
+        # if total_dist < 2:
+        #     print(agnets_dist[:len(agent_positions)], file=sys.stderr)
+
+        return total_dist/(len(agent_positions)+len(box_goals))
     
     def exact_dist_preprocess(self, level: h_level.HospitalLevel, improved = False):
+
         """
         - agent_goals and box_goals are lists of goals in the format (position, char, is_positive)
         """
@@ -420,6 +463,23 @@ class HospitalAdvancedHeuristics:
         self.all_names = set([b_g[1] for b_g in level.box_goals]+[a_g[1] for a_g in level.agent_goals])
         self.pre_calc_dists = [deepcopy([DistanceNode(level.agent_goals, level.box_goals) for i in range(cols)]) for j in range(rows)]
         ####
+
+        number_of_each_goal = defaultdict(lambda: 0)
+        number_of_each_obj = defaultdict(lambda: 0)
+        number_of_surpluss = defaultdict(lambda: 0)
+        for goal in level.agent_goals:
+            number_of_each_goal[goal[1]] +=1
+        for goal in level.box_goals:
+            number_of_each_goal[goal[1]] +=1
+        for goal in level.initial_agent_positions:
+            number_of_each_obj[goal[1]] +=1
+        for goal in level.initial_box_positions:
+            number_of_each_obj[goal[1]] +=1
+        
+        for name_sur in self.all_names:
+            number_of_surpluss[name_sur] = number_of_each_obj[name_sur] - number_of_each_goal[name_sur]
+        
+        self.n_surpluss = number_of_surpluss #For FINAL
 
         for i in range(1,rows-1):
             for j in range(1,cols-1):

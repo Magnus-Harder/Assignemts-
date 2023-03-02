@@ -27,7 +27,7 @@ def classic_agent_type(level, initial_state, action_library, goal_description, f
         return
 
     #debuging
-    print(f"--PLAN--\n", plan,"\n", file=sys.stderr)
+    #print(f"--PLAN--\n", plan,"\n", file=sys.stderr)
     
     print(f"Found solution of length {len(plan)}", file=sys.stderr)
 
