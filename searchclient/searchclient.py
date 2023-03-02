@@ -79,6 +79,8 @@ def parse_command_line_arguments():
             const='exact_ican', help='no')
     heuristic_group.add_argument('--exact_boxes_improved', action='store_const', dest='type', 
             const='exact_boxes_improved', help='no')
+    heuristic_group.add_argument('--final', action='store_const', dest='type', 
+            const='exact_final_improved', help='no')
     
 
     

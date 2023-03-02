@@ -74,6 +74,7 @@ class HospitalAdvancedHeuristics:
         self.advanced_type = advanced_type
         #For dividing by agent and box number and not goal number
         self.fixed_divisor = False
+        self.ran_best_candidate = False
         if advanced_type[-5:] == "fixed":
             self.fixed_divisor = True
             self.advanced_type = advanced_type[:-6]
@@ -108,6 +109,8 @@ class HospitalAdvancedHeuristics:
             return self.ican(state,goal_description)
         elif self.advanced_type == "exact_boxes_improved":
             return self.complex_lookup_improved(state,goal_description, only_boxes=True)
+        elif self.advanced_type == "exact_final_improved":
+            return self.complex_lookup_improved(state,goal_description)
         else:
             return self.simple_dist_heuristic(state,goal_description)
 
@@ -345,7 +348,7 @@ class HospitalAdvancedHeuristics:
                     closets_agent_dist = manhattan_dist
             if closets_agent_dist == APPROX_INFINITY:
                 continue
-            if closest_dist_triplet[1] < (1 + only_boxes): #If near in goal
+            if closest_dist_triplet[1] < (1 + only_closets): #If near in goal
                 # < 1 would encourage the greedy to pull it out of the goal to get the discount from being close to it:/
                 continue
             if not only_closets:
@@ -357,6 +360,49 @@ class HospitalAdvancedHeuristics:
             total_dist += agent_to_box_min
 
         return total_dist/(len(agent_positions)+len(box_goals))
+    
+    def final(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription, only_boxes = False, total= False) -> int:
+        agent_positions = state.agent_positions
+        agent_goals = goal_description.agent_goals
+        agent_goal_num = len(agent_goals)
+        box_positions = state.box_positions
+        box_goals = goal_description.box_goals
+
+        total_dist = 0
+        
+        if not self.ran_best_candidate:
+            goals_best_cand = [[a_goal[1], APPROX_INFINITY,-1] for a_goal in agent_goals]
+            goals_best_cand.extend([[b_goal[1],APPROX_INFINITY,-1] for b_goal in box_goals])
+            import copy
+            all_positions = copy(agent_positions).extend(box_positions)
+            for goal_index, cand_quart in enumerate(goals_best_cand):
+                best_distance = APPROX_INFINITY
+                for obj_indx, tuple in enumerate(all_positions):
+                    name = tuple[1]
+                    pos = tuple[0]
+
+                    if not name in self.all_names: #If not a goal
+                        continue
+                    curr_dist = self.pre_calc_dists[pos[0]][pos[1]].distance_to_improved(goal_index)
+                    if curr_dist < best_distance:
+                        cand_quart[2] = obj_indx
+                        cand_quart[1] = curr_dist
+        
+            self.goals_best_cand = goals_best_cand
+            self.ran_best_candidate = True
+
+        for goal_index, cand_quart in enumerate(self.goals_best_cand):
+            obj_index = cand_quart[2]
+            if goal_index > agent_goal_num:
+                tuple = box_positions[obj_index - agent_goal_num]
+            else:
+                tuple = agent_positions[obj_index]
+            pos = tuple[0]
+            curr_dist = self.pre_calc_dists[pos[0]][pos[1]].distance_to_improved(goal_index)
+
+            total_dist += curr_dist
+        
+        return total_dist/(len(self.goals_best_cand))
     
     def exact_dist_preprocess(self, level: h_level.HospitalLevel, improved = False):
         """
