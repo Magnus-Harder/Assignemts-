@@ -31,4 +31,96 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
     # - You probably want to create a helper function for creating the set of negative obstacle subgoals.
     #   You can then create a new goal description using 'goal_description.create_new_goal_description_of_same_type'
     #   which takes a list of subgoals.
-    raise NotImplementedError()
+    
+    def get_agent0_pos(state_in):
+        for pos in state_in.agent_positions:
+            if pos[1] == agent:
+                return pos[0]
+
+    def get_helper_goal(color,positions_path):
+        c_state = initial_state.color_filter(color)
+        helper_agent = c_state.agent_positions[0][1]
+        helper_box = c_state.box_positions[0][1]
+        goal_list = []
+        for pos in positions_path:
+            goal_list.append((pos,helper_agent,False))
+            goal_list.append((pos,helper_box,False))
+        
+        return goal_description.create_new_goal_description_of_same_type(goal_list), helper_agent
+            
+    
+    num_agents = level.num_agents
+    helper_agents = [f"{i}" for i in range(1,num_agents)]
+
+    agent = "0"
+    agent_color = level.colors[agent]
+    
+    action_set = [[GenericNoOp()]] * level.num_agents
+    action_set[0] = action_library
+    # Create a monochrome problem
+    monochrome_problem = initial_state.color_filter(agent_color)
+    monochrome_goal_description = goal_description.color_filter(agent_color)
+    
+    plan_succes , plan = graph_search(monochrome_problem, action_set, monochrome_goal_description, frontier)
+    assert plan_succes, f"Agent 0 not able to solve monochrome problem!!"
+    path0 = []
+    state_loop = monochrome_problem
+    for action in plan:
+        state_loop = state_loop.result(action)
+        path0.append(get_agent0_pos(state_loop))
+    
+    #Debugging!
+    # print(f"--PLAN--\n", plan,"\n", file=sys.stderr)
+    # print(f"--PATH--\n", path0,"\n", file=sys.stderr)
+
+    pi = []
+    for p in range(len(plan)):
+        naive_joint_action = [GenericNoOp()] * level.num_agents
+        naive_joint_action[0] = plan[p][0]
+        pi.append(naive_joint_action)
+    # Exetuting plan
+    p = 0
+    while(len(pi) != p):
+        print(joint_action_to_string(pi[p]), flush=True)
+        
+        line = read_line()
+        execution_successes = parse_response(line)
+
+        if execution_successes[0] == False:
+            # Agent 0 is stuck now
+            remaining_plan = pi[p:]
+            remaining_path = path0[p:]
+            curr_state = initial_state.result_of_plan(pi[:p])
+
+            # print(f"--pos--\n", get_agent0_pos(curr_state),"\n", file=sys.stderr)
+            # print(f"--REMAINING PLAN--\n", remaining_plan,"\n", file=sys.stderr)
+            # print(f"--REMAINING POS--\n", remaining_path,"\n", file=sys.stderr)
+            
+            action_failed = pi[p][0]
+            occupied, _ = action_failed.conflicts(0,curr_state) #ASSUMING AGENT O INDEX IS 0 (for now)
+            for occ_pos in occupied:
+                blocking_obj = curr_state.object_at(occ_pos)
+            assert blocking_obj != "", "There is no object blocking but plan failed!"
+            blocking_color = level.colors[blocking_obj]
+            print(f"--Helper Color--\n", blocking_color,"\n", file=sys.stderr)
+            
+            helper_goal, helper_agent = get_helper_goal(blocking_color,remaining_path)
+            
+            helper_action_set = [[GenericNoOp()]] * level.num_agents
+            helper_action_set[int(helper_agent)] = action_library
+
+            h_success, h_plan = graph_search(curr_state, helper_action_set, helper_goal, frontier)
+            assert h_success, f"Helper {helper_agent} cannot solve problem"
+
+            new_pi = pi[:p] + h_plan + pi[p:]
+            pi = new_pi
+            #print(f"--HEPLER PLAN--\n", h_success,h_plan, helper_goal,"\n", file=sys.stderr)
+        else:
+            p += 1
+    
+    
+    
+    
+        
+        
+    
