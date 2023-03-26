@@ -72,6 +72,8 @@ def parse_command_line_arguments():
     type_group = parser.add_mutually_exclusive_group()
     type_group.add_argument('-manhattan', action='store_const', dest='type', const='simple',
                                  help='Use simple manhattan distance.')
+    type_group.add_argument('-exact_wrong', action='store_const', dest='type', const='exact',
+                                 help='Use simple wrong exact distance.')
     type_group.add_argument('-complex', action='store_const', dest='type', const='exact_final_improved',
                                  help='Use final complex heuristic.')
 
