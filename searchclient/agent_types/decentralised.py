@@ -87,7 +87,7 @@ def decentralised_agent_type(level, initial_state, action_library, goal_descript
             if not response[idx] and len(pi[idx]) != 0:
                 not_finished -= 1
             
-        if not_finished == 0:
-            print("Unable to solve level", file=sys.stderr)
-            print(pi,file=sys.stderr)
-            return
+        # if not_finished == 0 and :
+        #     print("Unable to solve level", file=sys.stderr)
+        #     print(pi,file=sys.stderr)
+        #     return
