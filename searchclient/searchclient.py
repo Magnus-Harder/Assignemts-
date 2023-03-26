@@ -69,6 +69,11 @@ def parse_command_line_arguments():
                                  help='Use a goal count heuristic.')
     heuristic_group.add_argument('-advancedheuristic', action='store_const', dest='heuristic', const='advanced',
                                  help='Use an advanced heuristic.')
+    type_group = parser.add_mutually_exclusive_group()
+    type_group.add_argument('-manhattan', action='store_const', dest='type', const='simple',
+                                 help='Use simple manhattan distance.')
+    type_group.add_argument('-complex', action='store_const', dest='type', const='exact_final_improved',
+                                 help='Use final complex heuristic.')
 
     action_library_group = parser.add_mutually_exclusive_group()
     action_library_group.add_argument('-defaultactions', action='store_const', dest='action_library', const='default',
@@ -97,15 +102,15 @@ def parse_command_line_arguments():
     max_memory_gb = int(max_memory_gb_match.group(1))
     memory.max_usage = max_memory_gb * 1024 * 1024 * 1024
 
-    return args.strategy, args.heuristic, args.action_library, args.agent_type, args.level, args.ip
+    return args.strategy, args.heuristic, args.type, args.action_library, args.agent_type, args.level, args.ip
 
 
 if __name__ == '__main__':
 
-    strategy_name, heuristic_name, action_library_name, agent_type_name, level_path, robot_ip = parse_command_line_arguments()
+    strategy_name, heuristic_name, type_name, action_library_name, agent_type_name, level_path, robot_ip = parse_command_line_arguments()
 
     # Construct client name by removing all missing arguments and joining them together into a single string
-    name_components = [agent_type_name, strategy_name, heuristic_name, action_library_name]
+    name_components = [agent_type_name, strategy_name, heuristic_name, type_name, action_library_name]
     client_name = " ".join(filter(lambda name: name is not None, name_components))
 
     # Send client name to server
@@ -139,7 +144,13 @@ if __name__ == '__main__':
         if heuristic_name == 'goalcount':
             heuristic = HospitalGoalCountHeuristics()
         elif heuristic_name == 'advanced':
-            heuristic = HospitalAdvancedHeuristics()
+            if type_name == None:
+                heuristic = HospitalAdvancedHeuristics()
+                print("DDDD")
+            else:
+                heuristic = HospitalAdvancedHeuristics(advanced_type=type_name)
+                print(type_name)
+                
 
     # Some heuristics needs to preprocess the level to pre-compute distance lookup tables, matchings, etc.
     if heuristic is not None:

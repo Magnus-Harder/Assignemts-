@@ -72,7 +72,7 @@ class HospitalGoalCountHeuristics:
 
 
 class HospitalAdvancedHeuristics:
-    def __init__(self, advanced_type):
+    def __init__(self, advanced_type = "exact_final_improved"):
         self.advanced_type = advanced_type
         #For dividing by agent and box number and not goal number
         self.fixed_divisor = False
