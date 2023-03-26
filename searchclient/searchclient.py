@@ -72,6 +72,8 @@ def parse_command_line_arguments():
     type_group = parser.add_mutually_exclusive_group()
     type_group.add_argument('-manhattan', action='store_const', dest='type', const='simple',
                                  help='Use simple manhattan distance.')
+    type_group.add_argument('-exact_wrong', action='store_const', dest='type', const='exact',
+                                 help='Use simple wrong exact distance.')
     type_group.add_argument('-complex', action='store_const', dest='type', const='exact_final_improved',
                                  help='Use final complex heuristic.')
 
@@ -146,10 +148,10 @@ if __name__ == '__main__':
         elif heuristic_name == 'advanced':
             if type_name == None:
                 heuristic = HospitalAdvancedHeuristics()
-                print("DDDD")
+                print("Type: default", file=sys.stderr)
             else:
                 heuristic = HospitalAdvancedHeuristics(advanced_type=type_name)
-                print(type_name)
+                print("Type: ", type_name, file=sys.stderr)
                 
 
     # Some heuristics needs to preprocess the level to pre-compute distance lookup tables, matchings, etc.
