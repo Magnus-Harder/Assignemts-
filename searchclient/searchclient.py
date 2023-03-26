@@ -148,10 +148,10 @@ if __name__ == '__main__':
         elif heuristic_name == 'advanced':
             if type_name == None:
                 heuristic = HospitalAdvancedHeuristics()
-                print("DDDD")
+                print("Type: default", file=sys.stderr)
             else:
                 heuristic = HospitalAdvancedHeuristics(advanced_type=type_name)
-                print(type_name)
+                print("Type: ", type_name, file=sys.stderr)
                 
 
     # Some heuristics needs to preprocess the level to pre-compute distance lookup tables, matchings, etc.

@@ -48,6 +48,7 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
         
         return goal_description.create_new_goal_description_of_same_type(goal_list), helper_agent
             
+    total_generated = 0
     
     num_agents = level.num_agents
     helper_agents = [f"{i}" for i in range(1,num_agents)]
@@ -61,8 +62,10 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
     monochrome_problem = initial_state.color_filter(agent_color)
     monochrome_goal_description = goal_description.color_filter(agent_color)
     
-    plan_succes , plan = graph_search(monochrome_problem, action_set, monochrome_goal_description, frontier)
+    plan_succes , plan, runinfo = graph_search(monochrome_problem, action_set, monochrome_goal_description, frontier, info_dict=True)
     assert plan_succes, f"Agent 0 not able to solve monochrome problem!!"
+    total_generated += runinfo["Generated"]
+    
     path0 = []
     state_loop = monochrome_problem
     for action in plan:
@@ -109,7 +112,8 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
             helper_action_set = [[GenericNoOp()]] * level.num_agents
             helper_action_set[int(helper_agent)] = action_library
 
-            h_success, h_plan = graph_search(curr_state, helper_action_set, helper_goal, frontier)
+            h_success, h_plan, h_runinfo = graph_search(curr_state, helper_action_set, helper_goal, frontier, info_dict=True)
+            total_generated += h_runinfo["Generated"]
             assert h_success, f"Helper {helper_agent} cannot solve problem"
 
             new_pi = pi[:p] + h_plan + pi[p:]
@@ -117,6 +121,9 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
             #print(f"--HEPLER PLAN--\n", h_success,h_plan, helper_goal,"\n", file=sys.stderr)
         else:
             p += 1
+    
+    print(f"--Total Generated--\n # ", total_generated," #\n", file=sys.stderr)
+
     
     
     

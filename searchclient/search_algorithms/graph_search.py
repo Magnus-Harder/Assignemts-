@@ -30,7 +30,8 @@ def graph_search(
         initial_state:      state.HospitalState,
         action_set:         list[list[actions.AnyAction]],
         goal_description:   goal_description.HospitalGoalDescription,
-        frontier:           bfs.FrontierBFS
+        frontier:           bfs.FrontierBFS,
+        info_dict = False
     ) -> tuple[bool, list[list[actions.AnyAction]]]:
     global start_time
 
@@ -81,7 +82,7 @@ def graph_search(
     while True:
 
         # Print a progress status message every 10000 iterations
-        if iterations % 10000 == 0 and iterations != 0:
+        if iterations % 10000 == 0:
             print_search_status(expanded, frontier)
 
         # Ensure that we do not use more memory than allowed
@@ -102,6 +103,9 @@ def graph_search(
         if goal_description.is_goal(node):
             # Addded back in to get final expaned count
             print_search_status(expanded, frontier)
+            if info_dict:
+                info = {"Expanded": len(expanded), "Frontier": frontier.size(), "Generated": len(expanded) + frontier.size()}
+                return True, node.extract_plan(), info
             return True, node.extract_plan()
 
         # If the node has not been expanded before, expand it
@@ -115,6 +119,9 @@ def graph_search(
                     frontier.add(child)
 
     # If we reach this point, we have exhausted the frontier without finding a solution
+    if info_dict:
+        info = {"Expanded": len(expanded), "Frontier": frontier.size(), "Generated": len(expanded) + frontier.size()}
+        return False, [], info
     return False, []
 
 
