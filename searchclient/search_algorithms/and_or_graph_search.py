@@ -25,6 +25,7 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
     # The state is changed by the result function, which is why we need to make a copy of the state before calling it.
     # The state is also changed by the is_applicable function, which is why we need to make a copy of the state before calling it.
     # The state is also changed by the get_applicable_actions function, which is why we need to make a copy of the state before calling it.
+    
 
     # print(action_set,file=sys.stderr)
     def Or_search(state,path,depth=100):
@@ -41,8 +42,12 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         
         # Check if state is in path
         if state in path:
-            return False
-        
+            # Loop
+            if cyclic:
+                return "Loop"
+            else:
+                return False
+
         # loop over all actions
         for action in state.get_applicable_actions(action_set):
             print(state.get_applicable_actions(action_set),file=sys.stderr)
@@ -50,12 +55,8 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
             path_for_plan = deepcopy(path)
             path_for_plan.append(state)
 
-            # Dont include actions which result in illegal states
+            # Find the next states
             new_states = results(state,action)
-            # x = []
-            # for s in new_states:
-            #     if s.get_applicable_actions(action_set) != []:
-            #         x.append(s)
             
             # Get plan from And_search
             plan = And_search(new_states, path_for_plan, depth)
@@ -75,14 +76,30 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
 
     def And_search(states,path,depth):
 
-        plan = {}
-        # loop over possible results
-        for state in states:
-            plani = Or_search(state,path,depth)
-   
-            # See if plan is succesfull
-            if plani != False:
-                plan.update(plani)
+        #Added cyclic case
+        if cyclic:
+            plan = {}
+            planis = [Or_search(state,path,depth) for state in states]
+
+            # Ensure that not all plans are loops
+            if all(p == "Loop" or p == False for p in planis):
+                return plan
+            else:
+                # If one plan doesnt loop or fail then all succeeding plans are added
+                for p in planis:
+                    # There is no reason to overwrite existing plan if in loop
+                    if p != False and p != "Loop":
+                        plan.update(p) 
+
+        else:
+            plan = {}
+            # loop over possible results
+            for state in states:
+                plani = Or_search(state,path,depth)
+
+                # See if plan is succesfull
+                if plani != False:
+                    plan.update(plani)
             
         
         # Return plan
@@ -91,6 +108,7 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
     # Return Policy and worst case length
     path = []
     depth = 10
+    cyclic = True
     plan = Or_search(initial_state,path,depth)
 
     return len(plan.keys()), plan
