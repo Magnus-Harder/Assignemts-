@@ -152,14 +152,14 @@ class HospitalState:
             new_state = new_state.result(joint_action)
         return new_state
 
-    def is_applicable(self, joint_action: list[actions.AnyAction]) -> bool:
+    def is_applicable(self, joint_action: list[actions.DEFAULT_HOSPITAL_ACTION_LIBRARY]) -> bool:
         """Returns whether all individual actions in the joint_action is applicable in this state"""
         for agent_index, action in enumerate(joint_action):
             if not action.is_applicable(agent_index, self):
                 return False
         return True
 
-    def get_applicable_actions(self, action_set: list[list[actions.AnyAction]]):
+    def get_applicable_actions(self, action_set: list[list[actions.DEFAULT_HOSPITAL_ACTION_LIBRARY]]):
         """Returns a list of all applicable joint_action in this state"""
         num_agents = len(self.agent_positions)
 

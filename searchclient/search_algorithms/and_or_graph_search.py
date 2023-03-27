@@ -26,7 +26,7 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
     # The state is also changed by the is_applicable function, which is why we need to make a copy of the state before calling it.
     # The state is also changed by the get_applicable_actions function, which is why we need to make a copy of the state before calling it.
 
-
+    # print(action_set,file=sys.stderr)
     def Or_search(state,path,depth=100):
 
         # Check if depth is reached
@@ -41,32 +41,33 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         
         # Check if state is in path
         if state in path:
-            #print("Loop detected",file=sys.stderr)
             return False
-        
-        
         
         # loop over all actions
         for action in state.get_applicable_actions(action_set):
-            
+            print(state.get_applicable_actions(action_set),file=sys.stderr)
             # Note Plan is a policy
-
             path_for_plan = deepcopy(path)
             path_for_plan.append(state)
 
-
-            plan = And_search(results(state,action), path_for_plan, depth)
-            print(plan,file=sys.stderr)
+            # Dont include actions which result in illegal states
+            new_states = results(state,action)
+            # x = []
+            # for s in new_states:
+            #     if s.get_applicable_actions(action_set) != []:
+            #         x.append(s)
+            
+            # Get plan from And_search
+            plan = And_search(new_states, path_for_plan, depth)
 
             # See if plan is succesfull
-            if plan[state] != False:
+            if plan != False:
 
                 # Add action to plan
                 plan[state] = action
 
                 # Return plan
-                return plan
-            
+                return plan  
         
         # If no plan is found return false
         return False
@@ -74,31 +75,22 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
 
     def And_search(states,path,depth):
 
-        plans = {}
+        plan = {}
         # loop over possible results
         for state in states:
             plani = Or_search(state,path,depth)
-
-            #print(plani,file=sys.stderr)
    
             # See if plan is succesfull
-            if plani == False:
-                plans[state] = False
-                return plans
+            if plani != False:
+                plan.update(plani)
             
-            plans.update(plani)
-            # Add plan to plans
         
-        # Return plans
-        print("Plans:",file=sys.stderr)
-        print(plans,file=sys.stderr)
-        return plans
+        # Return plan
+        return plan
 
     # Return Policy and worst case length
     path = []
-    depth = 15
+    depth = 10
     plan = Or_search(initial_state,path,depth)
-
-    print(plan,file=sys.stderr)
 
     return len(plan.keys()), plan

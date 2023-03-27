@@ -230,6 +230,7 @@ class PullAction:
     
 AnyAction = Union[NoOpAction, MoveAction, PushAction, PullAction] # Only for type hinting # added ours
 
+
 # An action library for the multi agent pathfinding
 DEFAULT_MAPF_ACTION_LIBRARY = [
     NoOpAction(),
@@ -277,6 +278,5 @@ DEFAULT_HOSPITAL_ACTION_LIBRARY = [
     PullAction("W", "S"),
     PullAction("W", "W"),
 ]
-
 
 
