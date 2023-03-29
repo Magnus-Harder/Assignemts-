@@ -13,7 +13,7 @@
 
 import sys
 from copy import deepcopy
-
+from time import time
     
 def and_or_graph_search(initial_state, action_set, goal_description, results):
 
@@ -26,7 +26,6 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
     # The state is also changed by the is_applicable function, which is why we need to make a copy of the state before calling it.
     # The state is also changed by the get_applicable_actions function, which is why we need to make a copy of the state before calling it.
     
-
     print("ACTION SET: ", action_set,file=sys.stderr)
     def Or_search(state,path,depth):
 
@@ -52,29 +51,15 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
             path_for_plan.append(state)
 
             # Find the next states
-            print("<<<<<<<<<<<<<", file=sys.stderr)
-            print(state,file=sys.stderr)
-            print("##########", file=sys.stderr)
             new_states = results(state,action)
-            for s in new_states:
-                print(s, file=sys.stderr)
-            print("#########", file=sys.stderr)
-            print(state,file=sys.stderr)
-            print("<<<<<<<<<<<<<", file=sys.stderr)
             
             # Get plan from And_search
             plan = And_search(new_states, path_for_plan, depth)
 
             # See if plan is succesfull
             if plan != False:
-
-                # if state in plan.keys():
-                #     print(state,file=sys.stderr)
-                # Add action to plan
+                # Add action to plan and return
                 plan[state] = action
-                print("------\n", plan,file=sys.stderr)
-
-                # Return plan
                 return plan  
         
         # If no plan is found return false
@@ -82,17 +67,17 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
 
 
     def And_search(states,path,depth):
-        new_depth = depth - 1
-        print(new_depth, file=sys.stderr)
+        new_depth = depth - 1 # Update depth for next Or-search call
         
         plan = {}
         planis = [Or_search(state,path,new_depth) for state in states]
+        
         #Added cyclic case
         if cyclic:
 
             # Ensure that not all plans are loops
             if all(p == "Loop" or p == False for p in planis):
-                return plan
+                return False # maybe?
             else:
                 # If one plan doesnt loop or fail then all succeeding plans are added
                 for p in planis:
@@ -101,9 +86,7 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
                         plan.update(p) 
 
         else:
-            # Where is return failiure if any or leaf is not goal node???
-            print("TTTTTTTTTTT\n", planis, file=sys.stderr)
-            print(all(p != False for p in planis), file=sys.stderr)
+            # Where was return failiure if any "OR-leaf" is not goal node???
             if all(p != False for p in planis):
                 for p in planis:
                     # Add succsesfull plans
@@ -113,27 +96,33 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         
         # Return plan
         return plan
-
-    # Return Policy and worst case length
-    path = []
-    depth = 2
     cyclic = False
-    plan = Or_search(initial_state,path,depth)
 
-    # Clearer debugging
-    for k, v in plan.items():
-        print(k,v,"\n",file=sys.stderr)
-    return len(plan.keys()), plan
+    #plan = Or_search(initial_state,path,depth)
+    # # Clearer debugging
+    # for k, v in plan.items():
+    #     print(k,v,"\n",file=sys.stderr)
+    # return len(plan.keys()), plan
     
-    # Can't go to next part without propper fail return
-    
+    # Can now go to next part with propper fail return
+    mulipl = 2
+    start_t = time()
     ## Iterative deepening search missing from prev. implementation
-    depth_budget = 1e1 ## Should be inf, but don't want to waste time with unreasonable searches
+    depth_budget = int(20) ## Should be inf, but don't want to waste time with unreasonable searches
     for d in range(depth_budget):
-        plan = Or_search(initial_state,[],d)
+        if d%mulipl == 0:
+            print(f"Searching depth of [{d}] after {int(time()-start_t)}s", file=sys.stderr)
+        
+        plan = Or_search(initial_state,[],d) # Find plan or fail at curr depth
+        
+        if plan != False:
+            # Return Policy and worst case length
+            return d, plan
     
     if d+1 >= depth_budget:
         print(f"Depth budget of {depth_budget} reached witout cutoff!!" ,file=sys.stderr)
+        if not cyclic:
+            print(f"No non-looping path to goal found" ,file=sys.stderr)
         return False
     else:
         print("This should be unreachable:&")
