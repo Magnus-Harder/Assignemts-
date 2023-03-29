@@ -32,6 +32,7 @@ CHANCE_OF_EXTRA_ACTION = 0.5
 def non_deterministic_agent_type(level, initial_state, action_library, goal_description):
     # Create an action set for a single agent.
     action_set = [action_library]
+    # assert level.num_agents == 1, "More than 1 agent not supported!!"
 
     # Call AND-OR-GRAPH-SEARCH to compute a conditional plan
     worst_case_length, plan = and_or_graph_search(initial_state, action_set, goal_description, broken_results)
@@ -58,7 +59,7 @@ def non_deterministic_agent_type(level, initial_state, action_library, goal_desc
         joint_action = plan[current_state]
 
         # Send the joint action to the server (also print it for help)
-        print(joint_action_to_string(joint_action), flush=True, file=sys.stderr)
+        #print(joint_action_to_string(joint_action), flush=True, file=sys.stderr)
         print(joint_action_to_string(joint_action), flush=True)
         _ = parse_response(read_line())
         current_state = current_state.result(joint_action)

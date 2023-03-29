@@ -42,23 +42,24 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
         helper_agent = c_state.agent_positions[0][1]
         helper_box = c_state.box_positions[0][1]
         goal_list = []
-        for pos in positions_path:
-            goal_list.append((pos,helper_agent,False))
-            goal_list.append((pos,helper_box,False))
+        for pos_list in positions_path:
+            for pos in pos_list: #It comes in a list of pos tuples because it can move the box also
+                goal_list.append((pos,helper_agent,False))
+                goal_list.append((pos,helper_box,False))
         
         return goal_description.create_new_goal_description_of_same_type(goal_list), helper_agent
             
-    total_generated = 0
+    total_generated = 0 #For counting states across all searches
     
     num_agents = level.num_agents
-    helper_agents = [f"{i}" for i in range(1,num_agents)]
 
-    agent = "0"
+    agent = "0" #The actor in the simplified domain
     agent_color = level.colors[agent]
     
-    action_set = [[GenericNoOp()]] * level.num_agents
+    action_set = [[GenericNoOp()]] * num_agents
     action_set[0] = action_library
-    # Create a monochrome problem
+    
+    # Createin a monochrome problem
     monochrome_problem = initial_state.color_filter(agent_color)
     monochrome_goal_description = goal_description.color_filter(agent_color)
     
@@ -67,14 +68,17 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
     total_generated += runinfo["Generated"]
     
     path0 = []
+    path0old = []
     state_loop = monochrome_problem
     for action in plan:
+        pos_list, _ = action[0].conflicts(0,state_loop)
         state_loop = state_loop.result(action)
-        path0.append(get_agent0_pos(state_loop))
+        path0.append(pos_list)
+        path0old.append(get_agent0_pos(state_loop))
     
     #Debugging!
     # print(f"--PLAN--\n", plan,"\n", file=sys.stderr)
-    # print(f"--PATH--\n", path0,"\n", file=sys.stderr)
+    # print(f"--PATH--\n", path0, path0old,"\n", file=sys.stderr)
 
     pi = []
     for p in range(len(plan)):
@@ -105,11 +109,11 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
                 blocking_obj = curr_state.object_at(occ_pos)
             assert blocking_obj != "", "There is no object blocking but plan failed!"
             blocking_color = level.colors[blocking_obj]
-            print(f"--Helper Color--\n", blocking_color,"\n", file=sys.stderr)
+            #print(f"--Helper Color--\n", blocking_color,"\n", file=sys.stderr)
             
             helper_goal, helper_agent = get_helper_goal(blocking_color,remaining_path)
             
-            helper_action_set = [[GenericNoOp()]] * level.num_agents
+            helper_action_set = [[GenericNoOp()]] * num_agents
             helper_action_set[int(helper_agent)] = action_library
 
             h_success, h_plan, h_runinfo = graph_search(curr_state, helper_action_set, helper_goal, frontier, info_dict=True)
