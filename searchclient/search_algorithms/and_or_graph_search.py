@@ -74,7 +74,6 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         
         #Added cyclic case
         if cyclic:
-
             # Ensure that not all plans are loops
             if all(p == "Loop" or p == False for p in planis):
                 return False # maybe?
@@ -96,7 +95,7 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         
         # Return plan
         return plan
-    cyclic = False
+    cyclic = True
 
     #plan = Or_search(initial_state,path,depth)
     # # Clearer debugging
@@ -120,10 +119,10 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
             return d, plan
     
     if d+1 >= depth_budget:
-        print(f"Depth budget of {depth_budget} reached witout cutoff!!" ,file=sys.stderr)
+        print(f"\nDepth budget of {depth_budget} reached witout cutoff!!" ,file=sys.stderr)
         if not cyclic:
-            print(f"No non-looping path to goal found" ,file=sys.stderr)
-        return False
+            print(f"\nNo non-looping path to goal found\n" ,file=sys.stderr)
+        return 0, {}
     else:
         print("This should be unreachable:&")
         raise NotImplementedError("idfk")
