@@ -45,13 +45,13 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
 
         # loop over all actions
         #print("APPLC: ", state.get_applicable_actions(action_set),file=sys.stderr)
-        for action in state.get_applicable_actions(action_set):
+        for action in deepcopy(state).get_applicable_actions(action_set):
             # Note Plan is a policy
             path_for_plan = deepcopy(path)
-            path_for_plan.append(state)
+            path_for_plan.append(deepcopy(state))
 
             # Find the next states
-            new_states = results(state,action)
+            new_states = results(deepcopy(state),action)
             
             # Get plan from And_search
             plan = And_search(new_states, path_for_plan, depth)
@@ -59,7 +59,7 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
             # See if plan is succesfull
             if plan != False:
                 # Add action to plan and return
-                plan[state] = action
+                plan[deepcopy(state)] = action
                 return plan  
         
         # If no plan is found return false
@@ -70,18 +70,17 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         new_depth = depth - 1 # Update depth for next Or-search call
         
         plan = {}
-        planis = [Or_search(state,path,new_depth) for state in states]
+        planis = [Or_search(deepcopy(state),path,new_depth) for state in states]
         
         #Added cyclic case
         if cyclic:
-            # Ensure that not all plans are loops
-            if all(p == "Loop" or p == False for p in planis):
-                return False # maybe?
+            # Ensure that not all plans are loop and that no plan is not a goal node (or a loop)
+            if any(p == False for p in planis) or all(p == "Loop" for p in planis):
+                return False
             else:
-                # If one plan doesnt loop or fail then all succeeding plans are added
                 for p in planis:
                     # There is no reason to overwrite existing plan if in loop
-                    if p != False and p != "Loop":
+                    if p != "Loop":
                         plan.update(p) 
 
         else:
@@ -116,6 +115,8 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         
         if plan != False:
             # Return Policy and worst case length
+            for k, v in plan.items():
+                print(k,v,"\n",file=sys.stderr)
             return d, plan
     
     if d+1 >= depth_budget:
