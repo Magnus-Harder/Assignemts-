@@ -32,9 +32,6 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         # Cheack if state is goal
         if goal_description.is_goal(state):
             return {}
-        # Check if depth is reached
-        if depth == 0:
-            return False
 
         # Check if state is in path
         if state in path: # Loop
@@ -42,6 +39,10 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
                 return "Loop"
             else:
                 return False
+        
+        # Check if depth is reached
+        if depth == 0:
+            return False
 
         # loop over all actions
         #print("APPLC: ", state.get_applicable_actions(action_set),file=sys.stderr)
@@ -103,7 +104,7 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
     # return len(plan.keys()), plan
     
     # Can now go to next part with propper fail return
-    mulipl = 2
+    mulipl = 1
     start_t = time()
     ## Iterative deepening search missing from prev. implementation
     depth_budget = int(20) ## Should be inf, but don't want to waste time with unreasonable searches
