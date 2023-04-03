@@ -26,6 +26,14 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
     # The state is also changed by the is_applicable function, which is why we need to make a copy of the state before calling it.
     # The state is also changed by the get_applicable_actions function, which is why we need to make a copy of the state before calling it.
     
+    ## Yes, the order of the action is what causes the wierd behaviour on the MAloop00.lvl
+    ### Because of the depht-first nature of the algorithm it will find paths with the same depth and treat them as just as good while updating
+    """
+    action_set2 = deepcopy(action_set)
+    action_set = deepcopy(action_set)
+    action_set[0][3] = action_set2[0][4]
+    action_set[0][4] = action_set2[0][3]
+    """
     print("ACTION SET: ", action_set,file=sys.stderr)
     def Or_search(state,path,depth):
 
@@ -75,14 +83,13 @@ def and_or_graph_search(initial_state, action_set, goal_description, results):
         
         #Added cyclic case
         if cyclic:
-            # Ensure that not all plans are loop and that no plan is not a goal node (or a loop)
+            # Ensure that not all plans are loop and that no plan is False
             if any(p == False for p in planis) or all(p == "Loop" for p in planis):
                 return False
             else:
                 for p in planis:
-                    # There is no reason to overwrite existing plan if in loop
-                    if p != "Loop":
-                        plan.update(p) 
+                    if p != "Loop": #Can't update the plan if loop
+                        plan.update(p)
 
         else:
             # Where was return failiure if any "OR-leaf" is not goal node???
