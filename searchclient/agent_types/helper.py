@@ -87,6 +87,7 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
         pi.append(naive_joint_action)
     # Exetuting plan
     p = 0
+    p_padding = 0
     while(len(pi) != p):
         print(joint_action_to_string(pi[p]), flush=True)
         
@@ -96,10 +97,10 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
         if execution_successes[0] == False:
             # Agent 0 is stuck now
             remaining_plan = pi[p:]
-            remaining_path = path0[p:]
+            remaining_path = path0[p - p_padding:] # Need to remember p where it left off.. #TODO: prob. better to pad the path in future implementations
             curr_state = initial_state.result_of_plan(pi[:p])
 
-            # print(f"--pos--\n", get_agent0_pos(curr_state),"\n", file=sys.stderr)
+            print(f"--pos--\n", get_agent0_pos(curr_state),"\n", file=sys.stderr)
             # print(f"--REMAINING PLAN--\n", remaining_plan,"\n", file=sys.stderr)
             # print(f"--REMAINING POS--\n", remaining_path,"\n", file=sys.stderr)
             
@@ -109,19 +110,23 @@ def helper_agent_type(level, initial_state, action_library, goal_description, fr
                 blocking_obj = curr_state.object_at(occ_pos)
             assert blocking_obj != "", "There is no object blocking but plan failed!"
             blocking_color = level.colors[blocking_obj]
-            #print(f"--Helper Color--\n", blocking_color,"\n", file=sys.stderr)
             
             helper_goal, helper_agent = get_helper_goal(blocking_color,remaining_path)
             
-            helper_action_set = [[GenericNoOp()]] * num_agents
+            #print("--Helper Color--\n", blocking_color, helper_agent,"\n", helper_goal, file=sys.stderr)
+            
+            helper_action_set = [[GenericNoOp()] for _ in range(num_agents)]
             helper_action_set[int(helper_agent)] = action_library
 
+            #print(helper_action_set, file=sys.stderr)
             h_success, h_plan, h_runinfo = graph_search(curr_state, helper_action_set, helper_goal, frontier, info_dict=True)
             total_generated += h_runinfo["Generated"]
             assert h_success, f"Helper {helper_agent} cannot solve problem"
 
+            
             new_pi = pi[:p] + h_plan + pi[p:]
             pi = new_pi
+            p_padding += len(h_plan)
             #print(f"--HEPLER PLAN--\n", h_success,h_plan, helper_goal,"\n", file=sys.stderr)
         else:
             p += 1

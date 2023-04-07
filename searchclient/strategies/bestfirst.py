@@ -147,7 +147,7 @@ class FrontierGreedy(FrontierBestFirst):
 
     def f(self, state: h_state.HospitalState, goal_description: h_goal_description.HospitalGoalDescription) -> int:
         # Your code here...
+        #print(self.heuristic, file=sys.stderr)
         h = self.heuristic.h(state, goal_description)
-        
         #print(state, h, file=sys.stderr)
         return h
