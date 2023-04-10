@@ -73,3 +73,6 @@ def non_deterministic_agent_type(level, initial_state, action_library, goal_desc
             print(joint_action_to_string(joint_action), flush=True)
             _ = parse_response(read_line())
             current_state = current_state.result(joint_action)
+            
+def new_agent_type(u):
+    pass
