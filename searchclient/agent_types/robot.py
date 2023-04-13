@@ -12,48 +12,51 @@
 # limitations under the License.
 
 """
-Working with the robot agent type is slightly different from the previous agent types.
-- First of all, you will need to install some additional packages 'numpy' and 'msgpack'.
-  Both can be install using pip, e.g., 'pip install numpy msgpack'. The exact details might
-  depend on your platform and Python installation.
-- Secondly, we will not be using the Java server when working with the robot, and the command
-  used to invoke the search client on the terminal is therefore slightly different for example:
-    'python searchclient/searchclient.py -robot -ip 192.168.0.102 -level levels/SAsoko1_04.lvl'
-  will run the searchclient using the 'robot' agent type, on the robot with the ip 192.168.0.102.
-- In order to connect to the robots, you need to be connected to the R2DTU hotspot. In order to
-  reduce the load on this hotspot, please disconnect from this hotspot between your sessions.
-- We have two robots, identifiable based upon the 'R1' and 'R2' on their tablets.
-  The ip addresses of the two robots are
-    R1: '192.168.0.105'
-    R2: '192.168.0.106'
-- A good start would be to start with something similar to the 'classic' agent type and then
-  replace the 'print(joint_action_to_string(joint_action), flush=True)' with calls to the 'robot'
-  interface.
+Using the robot agent type differs from previous agent types.
+  - Firstly, install additional package 'msgpack'.
+    Use pip for installation, like this: 
+        'python -m pip install numpy msgpack'. 
+    Exact steps may vary based on your platform and Python 
+    installation. 
+  - Secondly, you don't need the Java server for the robot. So, the command
+    to start the search client in the terminal is different, for example:
+        'python searchclient/searchclient.py -robot -ip 192.168.0.102 -level levels/SAsoko1_04.lvl'
+    runs the searchclient with the 'robot' agent type on the robot at IP 192.168.0.102. See a
+    list of robot IPs at the github page for the course.
+  - To connect to the robots, connect to the Pepper hotspot. To reduce
+    the load on the hotspot, please disconnect between your sessions.
+    
+  - A good starting point is using something similar to the 'classic' agent type and then
+    replacing it with calls to the 'robot' interface.
 """
+from utils import *
+from robot_interface import *
+from domains.hospital.actions import ROBOT_ACTION_LIBRARY
+from search_algorithms.graph_search import graph_search
+import time
 
-import math
 
+def robot_agent_type(level, initial_state, action_library, goal_description, frontier, robot_ip):
 
-def robot_agent_type(level, initial_state, action_library, goal_description, frontier, robot):
+    # Write your robot agent type here!
 
-    # Write your robot agent type here
     # What follows is a small example of how to interact with the robot.
     # You should browse through 'robot_interface.py' to get a full overview of all the available functionality
+    robot = RobotClient(robot_ip)
 
-    # Wake up robot, if you are the first to use it, and run motor check
-    robot.wake_up()
+    # Test out the robots microphone. The server will let you know when the robot is listening.
+    robot.listen(3, playback=True)
 
-    # Communicate using its speech synthesis
-    robot.say("Hello I am Pepper!")
+    # test the robots speech
+    robot.stand()
 
-    # Pre-scripted animation
-    robot.perform_animation("animations/Stand/Gestures/Hey_1")
+    # The robot will announce that it is executing the plan
+    robot.say('I am executing plan. Please watch out!')
 
-    # Drive 0.5 meter forward
-    robot.move(0.5, 0.0)
-    # Turn around 90 degrees (pi/2 radians)
-    robot.turn(math.pi/2.0)
-    # Drive 0.5 meter to the left
-    robot.move(0.0, 0.5)
-    # Turn back 90 degrees (-pi/2 radians)
-    robot.turn(-math.pi/2.0)
+    # Implement your solution here!
+
+    # Wait until the robot is done speaking
+    time.sleep(3)
+
+    # close the connection
+    robot.close()

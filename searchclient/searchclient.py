@@ -201,14 +201,10 @@ if __name__ == '__main__':
     elif agent_type_name == 'robot':
         if not robot_ip:
             raise ValueError("You must also specify which robot ip address to use when using the robot agent type!")
-        robot = RobotInterface(robot_ip)
         try:
-            robot_agent_type(level, initial_state, action_library, goal_description, frontier, robot)
+            robot_agent_type(level, initial_state, action_library, goal_description, frontier, robot_ip)
         except Exception as e:
             print("Robot agent terminated with error", e)
-            robot.shutdown()
             raise
-
-        robot.shutdown()
     else:
         print(f"Unrecognized agent type! {agent_type_name}", file=sys.stderr)

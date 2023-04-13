@@ -2,6 +2,12 @@
 
 This readme describes how to use the included Python search client with the server that is contained in server.jar.
 
+## Router Connection Information for robots
+
+Name: Pepper
+
+Password: 60169283
+
 ## Requirements
 
 The server requires a Java Runtime Environment version at least 17 and has been compiled and tested with OpenJDK.
@@ -46,7 +52,9 @@ The folder 'agent_types' contains multiple different type of agents which can be
 - 'classic' - A classic planning agent using GRAPH-SEARCH. Selected by default.
 - 'decentralised' - A planning agent using DECENTRALISED-AGENTS. Select by adding "-decentralised" to the command line.
 - 'helper' - A planning agent using the helper agent algorithm. Select by adding "-helper" to the command line.
-- 'non_deterministic' - A planning agent using AND-OR-GRAPH-SEACH with a broken executor. Select by adding "-nondeterministic" to the command line.
+- 'nondeterministic' - A planning agent using AND-OR-GRAPH-SEACH with a broken executor. Select by adding "-nondeterministic" to the command line.
+- 'goalrecognition' - An agent that anticipates which goal other agents are trying to achieve.
+- 'robot' - A physical robot!!!
 
 ## Debugging
 
