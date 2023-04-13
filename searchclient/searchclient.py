@@ -19,11 +19,13 @@ from agent_types.classic import classic_agent_type
 from agent_types.decentralised import decentralised_agent_type
 from agent_types.helper import helper_agent_type
 from agent_types.non_deterministic import non_deterministic_agent_type
-from agent_types.non_deterministic import new_agent_type
+from agent_types.goal_recognition import goal_recognition_agent_type
+from agent_types.robot import robot_agent_type
 from domains.hospital import *
 from strategies.bfs import FrontierBFS
 from strategies.dfs import FrontierDFS
 from strategies.bestfirst import FrontierAStar, FrontierGreedy
+from robot_interface import RobotInterface
 
 from utils import read_line
 
@@ -81,20 +83,22 @@ def parse_command_line_arguments():
     action_library_group = parser.add_mutually_exclusive_group()
     action_library_group.add_argument('-defaultactions', action='store_const', dest='action_library', const='default',
                                       help='Use the default action library.')
+    action_library_group.add_argument('-sticky', action='store_const', dest='action_library', const='sticky',
+                                      help='Use an action library with sticky goals.')
 
     agent_type_group = parser.add_mutually_exclusive_group()
     agent_type_group.add_argument('-classic', action='store_const', dest='agent_type', const='classic',
                                   help='Use a classic centralized agent type.')
-    agent_type_group.add_argument('-serial', action='store_const', dest='agent_type', const='serial',
-                                  help='Use a serial centralized agent type.')
     agent_type_group.add_argument('-decentralised', action='store_const', dest='agent_type', const='decentralised',
                                   help='Use a decentralised agent type.')
     agent_type_group.add_argument('-helper', action='store_const', dest='agent_type', const='helper',
                                   help='Use a helper agent type.')
     agent_type_group.add_argument('-nondeterministic', action='store_const', dest='agent_type', const='nondeterministic',
                                   help='Use a non deterministic agent type.')
-    agent_type_group.add_argument('-new', action='store_const', dest='agent_type', const='new',
-                                  help='Use a new agent type.')
+    agent_type_group.add_argument('-goalrecognition', action='store_const', dest='agent_type', const='goalrecognition',
+                                  help='Use a goal recognition agent type.')
+    agent_type_group.add_argument('-robot', action='store_const', dest='agent_type', const='robot',
+                                  help='Use a physical robot!')
 
 
     args = parser.parse_args()
@@ -192,7 +196,19 @@ if __name__ == '__main__':
         helper_agent_type(level, initial_state, action_library, goal_description, frontier)
     elif agent_type_name == 'nondeterministic':
         non_deterministic_agent_type(level, initial_state, action_library, goal_description)
-    elif agent_type_name == 'new':
-        new_agent_type(level, initial_state, action_library, goal_description)
+    elif agent_type_name == 'goalrecognition':
+        goal_recognition_agent_type(level, initial_state, action_library, goal_description, frontier)
+    elif agent_type_name == 'robot':
+        if not robot_ip:
+            raise ValueError("You must also specify which robot ip address to use when using the robot agent type!")
+        robot = RobotInterface(robot_ip)
+        try:
+            robot_agent_type(level, initial_state, action_library, goal_description, frontier, robot)
+        except Exception as e:
+            print("Robot agent terminated with error", e)
+            robot.shutdown()
+            raise
+
+        robot.shutdown()
     else:
         print(f"Unrecognized agent type! {agent_type_name}", file=sys.stderr)
