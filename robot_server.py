@@ -4,12 +4,10 @@ import sys
 import os
 import naoqi
 import time
-
-from scp import SCPClient
 import paramiko
 
-from scipy.io.wavfile import write
 from threading import Thread
+from scp import SCPClient
 
 """
 Using the robot agent type differs from previous agent types.
@@ -46,13 +44,13 @@ class RealRobot:
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.load_system_host_keys()
         
-        if self.ip == '192.168.1.100':
+        if self.ip == '192.168.1.102':
             ssh.connect(hostname=self.ip, username="nao", password="salt")
-        elif self.ip == '192.168.1.105)':
+        elif self.ip == '192.168.1.105':
             ssh.connect(hostname=self.ip, username="nao", password="pepper")
-        elif self.ip == '192.168.1.106)':
+        elif self.ip == '192.168.1.106':
             ssh.connect(hostname=self.ip, username="nao", password="r2dtu")
-        elif self.ip == '192.168.1.108)':
+        elif self.ip == '192.168.1.108':
             ssh.connect(hostname=self.ip, username="nao", password="Sokrates1")
 
         self.scp = SCPClient(ssh.get_transport())
@@ -122,17 +120,6 @@ class RealRobot:
     def onLeds(self,leds="AllLeds"):
         robot.leds.on(leds)
 
-    def declare_direction(self, move):
-        direction = {'Move(N)': "I am going North",
-                     'Move(E)': 'I am going East',
-                     'Move(S)': 'I am going South',
-                     'Move(W)': 'I am going West',
-                     'Push(N,N)': 'I am pushing North',
-                     'Push(E,E)': 'I am pushing East',
-                     'Push(S,S)': 'I am pushing South',
-                     'Push(W,W)': 'I am pushing West'}
-        return robot.say(direction[move])
-
     def sensor_touched(self, sensor):
 
         # Get list of sensor_status in the form of a list: [['Head', False, []], ['LArm', False, []], ... ]]
@@ -160,8 +147,9 @@ class RealRobot:
         return sensor_list[sensor_dict[sensor]][1]
     
     def listen(self, duration=3, channels = [0,0,1,0],playback=False):
+        
         # start recording
-        robot.recorder.startMicrophonesRecording("/home/nao/test.wav", "wav", 16000,[0,0,1,0])
+        robot.recorder.startMicrophonesRecording("/home/nao/test.wav", "wav", 16000,channels)
         print('Started recording')
 
         # wait for duration
@@ -190,28 +178,30 @@ class RealRobot:
 
     
     def command(self, data):
-        #tested
         if data['type'] == 'say':
                 self.say(str(data['sentence']))
 
-        #tested
         if data['type'] == 'forward':
             self.forward(float(data['distance']),bool(data['block']))
 
-        #not tested
         if data['type'] == 'turn':
             self.turn(float(data['angle']),bool(data['block']))
 
-        #not tested
         if data['type'] == 'stand':
             self.stand()
-
-        #not tested
-        if data['type'] == 'shutdown':
-            self.shutdown()
         
         if data['type'] == 'listen':
             self.listen(float(data['duration']),data['channels'],bool(data['playback']))
+
+        if data['type'] == 'offLeds':
+            self.offLeds(data['leds'])
+        
+        if data['type'] == 'onLeds':
+            self.onLeds(data['leds'])
+        
+
+
+        
 
 
 def server_program(robot):
