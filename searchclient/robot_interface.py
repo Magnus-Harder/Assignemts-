@@ -40,8 +40,14 @@ class RobotClient():
     def __init__(self, ip):
         self.ip = ip
 
-        # Base port number for all robots off of ip address
-        if self.ip == '192.168.1.100':
+        '''
+        Sometimes the robots can change their IP address. This is a workaround for that. 
+
+        You will also need to change the port numbers and the login in the server class.
+        
+        '''
+
+        if self.ip == '192.168.1.102':
             port = 5001  # if port fails you have from 5000-5009
         elif self.ip == '192.168.1.105':
             port = 5010  # if port fails you have from 5010-5019
@@ -56,6 +62,14 @@ class RobotClient():
         self.client_socket = socket.socket()  # instantiate
         self.client_socket.connect((self.host, self.port))  # connect to the server
 
+
+        '''
+        Direction mapping for the robot. The orientation of the robot is given by the 
+        angle of the world coordinate system. We will assume that world/level coordinate 
+        system is aligned with classroom such that north is facing the direction of the 
+        board/screens.
+
+        '''
         self.direction_mapping = { 'Move(N)': 90,
                         'Move(E)': 0,
                         'Move(S)': 270,
@@ -66,6 +80,17 @@ class RobotClient():
                         'Push(W,W)': 180}
 
     def forward(self,distance,block):
+        """
+        Commands the robot to move forward a given distance in meters. 
+
+        Parameters
+        ----------
+        'distance' : float
+            The distance to move forward in meters.
+        'block' : bool
+            If true, the robot will wait until the motion is completed before continuing with the next command.
+            If false, the robot will continue immediately. 
+        """
         forward_cmd = {
             'type': 'forward',
             'distance': float(distance),
@@ -76,6 +101,21 @@ class RobotClient():
         data = self.client_socket.recv(1024).decode() 
     
     def say(self, s):
+        """
+        Commands the robot to speak out the given sentence.
+
+        The speech is generated using the onboard text-to-speech synthesis.
+        Its intonation can sometimes be a bit strange. It is often possible to improve the
+        understandability of the speech by inserting small breaks a key location in the sentence.
+        This can be accomplished by inserting \\pau=$MS\\ commands, where $MS is the length of the
+        break in milliseconds, e.g., robot.say("Hello \\pau=500\\ world!") will cause the robot to
+        pause for 500 milliseconds before continuing with the sentence.
+
+        Parameters
+        ----------
+        'sentence' : string
+            The sentence to be spoken out loud.
+        """
         say_cmd = {
             'type': 'say',
             'sentence': s
@@ -85,6 +125,19 @@ class RobotClient():
         data = self.client_socket.recv(1024)
 
     def turn(self,angle,block):
+        """
+        Commands the robot to turn around its vertical axis.
+
+        The position of the robot will remain approximately constant during the motion.
+        Expect that the actually turned angle will vary a few degrees from the commanded values.
+        The speed of the motion will be determined dynamically, i.e., the further it has to turn,
+        the faster it will move.
+
+        Parameters
+        ----------
+        'theta' : float
+            The angle to turn in radians in the counter-clockwise direction.
+        """
         turn_cmd = {
             'type': 'turn',
             'angle': float(angle),
@@ -96,6 +149,11 @@ class RobotClient():
 
     
     def stand(self):
+        '''
+        Commands the robot to stand up in a straight position.
+
+        '''
+
         stand_cmd = {
             'type': 'stand'
         }
@@ -104,6 +162,10 @@ class RobotClient():
         data = self.client_socket.recv(1024)
 
     def shutdown(self):
+        ''''
+        Shuts down the robot.
+
+        '''	
         shutdown_cmd = {
             'type': 'shutdown'
         }
@@ -111,7 +173,24 @@ class RobotClient():
         self.client_socket.send(message)
         data = self.client_socket.recv(1024)
 
-    def move(x,y,theta,block):
+    def move(self,x,y,theta,block):
+        '''
+        Commands the robot to move to a given position and orientation. Three degrees of freedom are specified: 
+        the x and y coordinates of the position and the orientation theta. The position is specified in meters
+        relative to the robot's initial position. The orientation is specified in radians relative to the robot's
+        initial orientation. 
+
+        Parameters
+        ----------
+        'x' : float
+            The x coordinate of the position in meters.
+        'y' : float
+            The y coordinate of the position in meters.
+        'theta' : float
+            The orientation in radians.
+        'block' : bool
+            If true, the function will block until the robot has reached the target position.
+        '''
         move_cmd = { 
             'type': 'move',
             'x': float(x),
@@ -124,17 +203,47 @@ class RobotClient():
         data = self.client_socket.recv(1024)
 
     def close(self):
+        '''
+        Closes the connection to the robot.
+        '''
         if self.client_socket:
             self.client_socket.close()
 
-    '''
-        OBS:
-        The functions below do not call the server, but are used to convert the plan to a list of commands that 
-        can then be sent to the server.
-
-    '''
+    def onLeds(self):
+        '''
+        Commands the robot to turn on the LEDs on its head.
+        '''
+        onLeds_cmd = {
+            'type': 'onLeds'
+        }
+        message = msgpack.packb(onLeds_cmd, use_bin_type=True)
+        self.client_socket.send(message)
+        data = self.client_socket.recv(1024)
+    
+    def offLeds(self):
+        '''
+        Commands the robot to turn off the LEDs on its head.
+        '''
+        offLeds_cmd = {
+            'type': 'offLeds'
+        }
+        message = msgpack.packb(offLeds_cmd, use_bin_type=True)
+        self.client_socket.send(message)
+        data = self.client_socket.recv(1024)
     
     def declare_direction(self, move):
+        '''
+        Commands the robot to say the direction it is moving in.
+
+        Parameters
+        ----------
+        'move' : string
+            The direction the robot is moving in.
+        
+        Returns
+        -------
+            Makes the robot say the direction it is moving in.
+        '''
         direction = {'Move(N)': "I am going North",
                      'Move(E)': 'I am going East',
                      'Move(S)': 'I am going South',
@@ -148,9 +257,25 @@ class RobotClient():
     def listen(self, duration=3, channels=[0,0,1,0],playback=False):
 
         '''
-        :param duration: duration of the recording in seconds
-        :param channels: list of 4 booleans indicating which channels (microphones) to record [left, right, front, back]
-        :param playback: boolean indicating whether to play back the recording after recording
+        Commands the robot to listen for a given duration.
+
+        Parameters:
+        -----------
+        'duration' : int
+            The duration of the listening in seconds.
+        'channels' : list
+            The channels to listen on. The default is [0,0,1,0] which 
+            means that the robot will listen on the front microphone. 
+            You can also listen on other channels by changing the list.
+        playback : bool
+            If true, the robot will play back the audio it has recorded.
+        
+        Returns:
+        --------
+            The audio data recorded by the robot is saved in a folder
+            /tmp/ which needs to exist on the given computer. This can 
+            then used for speech recognition using Whisper.
+
         '''
 
         listen_cmd = {
@@ -162,10 +287,12 @@ class RobotClient():
         message = msgpack.packb(listen_cmd, use_bin_type=True)
         self.client_socket.send(message)
         data = self.client_socket.recv(1024)
+    
 
 
 
 if __name__ == '__main__':
+    # get the ip address of the robot
     ip = sys.argv[1]
 
     # connect to the server and robot
