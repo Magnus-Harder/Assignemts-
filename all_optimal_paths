@@ -1,0 +1,17 @@
+digraph {
+	0 [label="0 -> {((1, 6), 'A', True), ((3, 6), 'B', True)}"]
+	1 [label="1 -> {((1, 6), 'A', True), ((3, 6), 'B', True)}"]
+	5 [label="5 -> {((1, 6), 'A', True)}"]
+	8 [label="8 -> {((1, 6), 'A', True)}"]
+	12 [label="12 -> {((1, 6), 'A', True)}"]
+	8 -> 12 [label="Push(E,E)"]
+	5 -> 8 [label="Move(E)"]
+	1 -> 5 [label="Move(N)"]
+	6 [label="6 -> {((3, 6), 'B', True)}"]
+	9 [label="9 -> {((3, 6), 'B', True)}"]
+	15 [label="15 -> {((3, 6), 'B', True)}"]
+	9 -> 15 [label="Push(E,E)"]
+	6 -> 9 [label="Move(E)"]
+	1 -> 6 [label="Move(S)"]
+	0 -> 1 [label="Move(E)"]
+}

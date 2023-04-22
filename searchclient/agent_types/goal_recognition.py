@@ -94,7 +94,19 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
     # from your previous helper and non deterministic agent types.
     # Note: Similarly to the non deterministic agent type, this is not a fast algorithm and you should therefore start
     # by testing on very small levels, such as those found in the assignment.
-    raise NotImplementedError()
+    
+    ## For testing EX2:
+    actor_color = level.colors[str(actor_AGENT)]
+    goal_mono = goal_description.color_filter(actor_color)
+    initial_state_mono = initial_state.color_filter(actor_color)
+    possible_goals = [] #List of sub-goals for the actor
+    for index in range(goal_mono.num_sub_goals()):
+        sub_goal = goal_mono.get_sub_goal(index)
+        possible_goals.append(sub_goal)
+    
+    r = all_optimal_plans(initial_state_mono, [action_library], possible_goals, frontier)
+    print(r, file=sys.stderr)
+    #raise NotImplementedError()
 
 
 

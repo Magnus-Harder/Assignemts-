@@ -60,7 +60,7 @@ class MultiParentNode:
     def get_applicable_actions(self, action_set):
         # Find all joint actions and then pick out the action of the first agent
         joint_actions = self.state.get_applicable_actions(action_set)
-        actions = [joint_action[0] for joint_action in joint_actions]
+        actions = [joint_action[0] for joint_action in joint_actions] #0 index since it's actor
         return actions
 
     def result(self, action):
@@ -72,7 +72,7 @@ class MultiParentNode:
         # Returns a list of actions and their corresponding resulting states, which would be consistent with an
         # optimal plan to solve the specified goal.
         consistent_actions_and_results = []
-        for (action, state) in self.optimal_actions_and_results.items():
+        for (action, state) in self.optimal_actions_and_results.items(): #WHY CALL IT STATE WHEN IT IS A NODE!!!!!
             if goal in state.consistent_goals:
                 consistent_actions_and_results.append((action, state))
 
@@ -129,6 +129,26 @@ def visualize_solution_graph(solution_graph):
 
 
 def all_optimal_plans(initial_state, action_set, possible_goals, frontier):
+    def backpropigate(node: MultiParentNode):
+        if node.path_cost == 0:
+            assert len(node.parents) == 0, "Path cost not counted correctly!! 'root' has parents"
+            return node #reached root
+
+        for a_n, parent in enumerate(node.parents):
+            parent.consistent_goals.update(
+                node.consistent_goals
+            )
+            parent.optimal_actions_and_results[node.actions[a_n]] = node #TODO: Check correctness of updating like this
+            return backpropigate(parent)
+    ## Backpropigating goal
+    def trerminate(goal_states):
+        roots = []
+        for goal_state in goal_states:
+            goal_node = generated_states[goal_state]
+            roots.append(backpropigate(goal_node))
+        
+        #TODO: Assert all roots are the same node?
+        return roots[0]
     """
     An implementation of the ALL_OPTIMAL_PLANS algorithm as described in the MAvis3 assignment description.
     - initial_state: A instance of HospitalState representing the initial state of the level
@@ -145,15 +165,66 @@ def all_optimal_plans(initial_state, action_set, possible_goals, frontier):
     # Clear the parent pointer and path_cost in order make sure that the initial state is a root node
     initial_state.parent = None
     initial_state.path_cost = 0
-    frontier.prepare(possible_goals)
+    frontier.prepare(possible_goals) 
+    # This is just bad! why pass what is supposed to be a list of goal_descriptions into
+    #  a function which takes in a single goal_description, but actrually never even uses it??????
 
     root = MultiParentNode(initial_state)
 
     frontier.add(root)
-    generated_states = {}
-
-    # Your implementation of ALL-OPTIMAL-PLANS goes here...
-    raise NotImplementedError()
+    generated_states = {} #key is state and value is the node i guess
+    generated_states[initial_state] = root #Should I not include the root node? or should i move where it is added
+    last_goal_depth = -2 #Lazy initialization
+    
+    goals_completed = [False for g in possible_goals]
+    goal_states = set()
+    
+    while not frontier.is_empty():
+        node: MultiParentNode = frontier.pop()
+         
+        ## Terminating
+        if node.path_cost == last_goal_depth: #Should always be possible to do one more action after end state
+            sol_graph = trerminate(goal_states)
+            visualize_solution_graph(sol_graph)
+            return True, sol_graph
+        
+        for action in node.get_applicable_actions(action_set):
+            child_state = node.result(action)
+            
+            if child_state in generated_states.keys():
+                child: MultiParentNode = generated_states[child_state]
+                if not child.path_cost == node.path_cost + 1:
+                    #Repating a state which would not be an optimal path either way?
+                    continue
+                    #child:MultiParentNode = MultiParentNode(child_state)
+            else: #Create new node if not already generated
+                child: MultiParentNode = MultiParentNode(child_state)
+                frontier.add(child)
+            
+            generated_states[child_state] = child
+            #Checkin child state
+            for gi, goal in enumerate(possible_goals):
+                if goal.is_goal(child_state):
+                    goals_completed[gi] = True
+                    goal_states.add(child_state)
+                    child.consistent_goals.add(goal)
+                    print(goals_completed, file=sys.stderr)
+                if all(goals_completed):
+                    last_goal_depth = child.path_cost
+                    print(last_goal_depth, file=sys.stderr)
+            
+            child.parents.append(node)
+            child.actions.append(action)
+        
+        
+        
+        # depth(state_m) = depth(state_n) + 1 as per page 6 in Mavis3
+        #frontier.contains(state_n).
+        
+            
+                
+        
+    return False, None #Failure to find a solution
 
 
 # A global variable used to keep track of the start time of the current search
@@ -174,3 +245,25 @@ def print_search_status(generated, frontier):
     status_text = f"##Frontier: {num_frontier}, #Generated: {num_generated}," \
                   f" Time: {elapsed_time} s, Memory: {memory_usage_mb} MB\n"
     print(status_text, file=sys.stderr)
+    
+    
+## For testing ##
+if __name__ == "__main__":
+    def load_level_file_from_path(path):
+        with open(path, "r") as f:
+            lines = f.readlines()
+            lines = list(map(lambda line: line.strip(), lines))
+            return lines
+    
+    from strategies.bfs import FrontierBFS
+    from utils import *
+    from domains.hospital import *
+    
+    level_lines = load_level_file_from_path("C:\\Users\\Alexander\\wgit\\Assignemts-\\levels\\MAPF01.lvl")
+    
+    action_library = DEFAULT_HOSPITAL_ACTION_LIBRARY
+    level = HospitalLevel.parse_level_lines(level_lines)
+    initial_state = HospitalState(level, level.initial_agent_positions, level.initial_box_positions)
+    goal_description = HospitalGoalDescription(level, level.box_goals + level.agent_goals)
+    
+    print(level_lines)
