@@ -32,7 +32,6 @@ def get_fresh():
     next_id += 1
     return unique_id
 
-
 class MultiParentNode:
     """
     In order to represent the nodes of a solution graph, we need to track additional information beyond that contained
@@ -128,38 +127,48 @@ def visualize_solution_graph(solution_graph):
 
 
 
-def all_optimal_plans(initial_state, action_set, possible_goals, frontier):
+"""
+An implementation of the ALL_OPTIMAL_PLANS algorithm as described in the MAvis3 assignment description.
+- initial_state: A instance of HospitalState representing the initial state of the level
+- action_set: A list of possible actions
+- possible_goals: A list of goal descriptions, one of which the agent is trying to complete
+- frontier: A frontier
+The function should return a pair (boolean, MultiParentNode) where:
+- if the search found a solution, the boolean should be True and the MultiParentNode should be the root of the
+    solution graph
+- if the search did not find a solution, the boolean should be False and the MultiParentNode should be None
+"""
+def all_optimal_plans(initial_state, action_set, possible_goals, frontier, debug = False):
+    
     def backpropigate(node: MultiParentNode):
         if node.path_cost == 0:
-            assert len(node.parents) == 0, "Path cost not counted correctly!! 'root' has parents"
-            return node #reached root
+            #assert len(node.parents) == 0, "Path cost not counted correctly!! 'root' has parents"
+            return set([node]) ## reached root ##
 
+        rtn_set = set()
         for a_n, parent in enumerate(node.parents):
-            parent.consistent_goals.update(
-                node.consistent_goals
-            )
-            parent.optimal_actions_and_results[node.actions[a_n]] = node #TODO: Check correctness of updating like this
-            return backpropigate(parent)
-    ## Backpropigating goal
+            parent.consistent_goals.update(node.consistent_goals)
+            parent.optimal_actions_and_results[node.actions[a_n]] = node #Double check correctness of updating like this
+            rtn_set.update(backpropigate(parent))
+
+        return rtn_set #Should be a set of the single root node:&
+    
+    ## Backpropigating from all goal states ##
     def trerminate(goal_states):
-        roots = []
+        roots = set()
         for goal_state in goal_states:
             goal_node = generated_states[goal_state]
-            roots.append(backpropigate(goal_node))
+            roots.update(backpropigate(goal_node))
         
-        #TODO: Assert all roots are the same node?
+        assert len(roots) == 1, "More than one root node returned??"
+        return roots.pop()
+        # For debugging when I was returning in the wrong place in backpropigation
+        roots = list(roots)
+        dbgnode = roots[0].optimal_actions_and_results[action_set[0][3]].optimal_actions_and_results[action_set[0][1]]
+        for p in [nd for nd in dbgnode.parents]:
+            print(p.state,p.path_cost,file=sys.stderr)
         return roots[0]
-    """
-    An implementation of the ALL_OPTIMAL_PLANS algorithm as described in the MAvis3 assignment description.
-    - initial_state: A instance of HospitalState representing the initial state of the level
-    - action_set: A list of possible actions
-    - possible_goals: A list of goal descriptions, one of which the agent is trying to complete
-    - frontier: A frontier
-    The function should return a pair (boolean, MultiParentNode) where:
-    - if the search found a solution, the boolean should be True and the MultiParentNode should be the root of the
-      solution graph
-    - if the search did not find a solution, the boolean should be False and the MultiParentNode should be None
-    """
+    ## -------------------- ##
     iterations = 0
 
     # Clear the parent pointer and path_cost in order make sure that the initial state is a root node
@@ -181,48 +190,43 @@ def all_optimal_plans(initial_state, action_set, possible_goals, frontier):
     
     while not frontier.is_empty():
         node: MultiParentNode = frontier.pop()
+        iterations += 1
          
-        ## Terminating
-        if node.path_cost == last_goal_depth: #Should always be possible to do one more action after end state
+        ## Terminating ##
+        if node.path_cost == last_goal_depth: #Now you are adding children one layer below the last goal
             sol_graph = trerminate(goal_states)
-            visualize_solution_graph(sol_graph)
+            if debug:
+                visualize_solution_graph(sol_graph)
             return True, sol_graph
+        ## ----------- ##
         
         for action in node.get_applicable_actions(action_set):
             child_state = node.result(action)
             
             if child_state in generated_states.keys():
                 child: MultiParentNode = generated_states[child_state]
-                if not child.path_cost == node.path_cost + 1:
-                    #Repating a state which would not be an optimal path either way?
-                    continue
-                    #child:MultiParentNode = MultiParentNode(child_state)
             else: #Create new node if not already generated
                 child: MultiParentNode = MultiParentNode(child_state)
                 frontier.add(child)
+                generated_states[child_state] = child
             
-            generated_states[child_state] = child
+            if not child.path_cost == node.path_cost + 1: #Needs to be strict equal to not add cases where the parent is deeper than the schild
+                #Repating a state which would not be an optimal path either way?
+                continue
+            else:
+                child.parents.append(node)
+                child.actions.append(action)
+
             #Checkin child state
             for gi, goal in enumerate(possible_goals):
                 if goal.is_goal(child_state):
                     goals_completed[gi] = True
                     goal_states.add(child_state)
                     child.consistent_goals.add(goal)
-                    print(goals_completed, file=sys.stderr)
-                if all(goals_completed):
-                    last_goal_depth = child.path_cost
-                    print(last_goal_depth, file=sys.stderr)
-            
-            child.parents.append(node)
-            child.actions.append(action)
-        
-        
-        
-        # depth(state_m) = depth(state_n) + 1 as per page 6 in Mavis3
-        #frontier.contains(state_n).
-        
-            
-                
+                    # Setting termination flag if done
+                    if all(goals_completed) and last_goal_depth < 0:
+                        last_goal_depth = child.path_cost
+                        #print(last_goal_depth, file=sys.stderr)
         
     return False, None #Failure to find a solution
 
