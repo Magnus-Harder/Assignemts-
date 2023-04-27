@@ -1,3 +1,5 @@
+
+#%%
 # coding: utf-8
 #
 # Copyright 2021 The Technical University of Denmark
@@ -31,32 +33,165 @@ Using the robot agent type differs from previous agent types.
 """
 from utils import *
 from robot_interface import *
-from domains.hospital.actions import ROBOT_ACTION_LIBRARY
+from domains.hospital.actions import *
 from search_algorithms.graph_search import graph_search
 import time
 
 
+
+class Move_Robot:
+    def __init__(self, direction, move_distance=0.5):
+         self.direction = direction
+         self.direction_mapping = { 'Move(N)': 90,
+                        'Move(E)': 0,
+                        'Move(S)': 270,
+                        'Move(W)': 180,
+                        'Push(N,N)': 90,
+                        'Push(E,E)': 0,
+                        'Push(S,S)': 270,
+                        'Push(W,W)': 180}
+         self.move_distance = move_distance
+
+    def get_rotaiton(self, end_direction):
+    
+        to_rotate = end_direction - self.direction
+        if to_rotate > 180:
+            to_rotate = to_rotate - 360
+        elif to_rotate < -180:
+            to_rotate = to_rotate + 360
+        
+        # update direction
+        self.direction += to_rotate
+        self.direction = self.direction % 360
+
+        return to_rotate
+    
+    def speack_action(self,action,robot):
+        if action == 'None':
+            pass
+        else:
+            robot.say(action)
+
+    def execute(self,action,robot):
+        if action == 'None':
+            pass
+        else:
+            end_direction = self.direction_mapping[action.name]
+            rotation = self.get_rotaiton(end_direction)
+            robot.declare_action(action.name)
+            robot.turn(degrees(rotation),block=True)
+            robot.forward(self.move_distance,block=True)
+
+def get_command(robot):
+
+    text = robot.listen(duration=10)
+    text = text.lower()
+
+    if "break" in text:
+        return True
+
+    if "error" in text:
+        robot.say("Restate your command")
+        return get_command(robot)
+
+    if "move" in text:
+        if "north" in text:
+            return 
+        elif "south" in text:
+            return
+        elif "east" in text:
+            return
+        elif "west" in text:
+            return
+        else:
+            robot.say("Move Command is missing a direction. Please try again.")
+            return get_command(robot)
+    elif "push" in text:
+        if "north" in text:
+            return 
+        elif "south" in text:
+            return
+        elif "east" in text:
+            return
+        elif "west" in text:
+            return
+        else:
+            robot.say("Push Command is missing a direction. Please try again.")
+            return get_command(robot)
+    
+    # State possible subgoals
+    elif "subgoal" in text:
+        # TODO: Implement subgoal
+        # TODO: Speak reacheable subgoals
+        return
+    else:
+        robot.say("Command not recognized. Please try again.")
+        return get_command(robot)
+
+
+    
+    
 def robot_agent_type(level, initial_state, action_library, goal_description, frontier, robot_ip):
 
     # Write your robot agent type here!
 
-    # What follows is a small example of how to interact with the robot.
-    # You should browse through 'robot_interface.py' to get a full overview of all the available functionality
+    # Solve the problem using the graph search algorithm
+    action_set = [action_library] * level.num_agents
+
+    planning_success, plan = graph_search(initial_state, action_set, goal_description, frontier)
+
+    if not planning_success:
+        print("Unable to solve level.", file=sys.stderr)
+        return
+    
+    print(f"Found solution of length {len(plan)}", file=sys.stderr)
+
     robot = RobotClient(robot_ip)
+    mover = Move_Robot(90)
 
-    # Test out the robots microphone. The server will let you know when the robot is listening.
-    robot.listen(3, playback=True)
+    # Define the robot client and the move robot class
+    Command_mode = True
+    while Command_mode:
 
-    # test the robots speech
-    robot.stand()
+        # Get the command from the user
+        robot.say("Please give me a command")
+        command = get_command(robot)
+        
 
-    # The robot will announce that it is executing the plan
-    robot.say('I am executing plan. Please watch out!')
+        # Break out of the loop if the command is true
+        if command == True:
+            Command_mode = False
+        else:
+            mover.execute(command,robot)
+        
 
-    # Implement your solution here!
 
-    # Wait until the robot is done speaking
-    time.sleep(3)
+    
 
-    # close the connection
-    robot.close()
+    if True:
+        print(plan)
+    else:
+        # Test out the robots microphone. The server will let you know when the robot is listening.
+        robot = RobotClient(robot_ip)
+        mover = Move_Robot(90)
+        robot.listen(3, playback=True)
+
+        # test the robots speech
+        robot.stand()
+
+        # The robot will announce that it is executing the plan
+        robot.say('I am executing plan. Please watch out!')
+
+        # Implement your solution here!
+
+        plan = ROBOT_ACTION_LIBRARY
+        for action in plan:
+            time.sleep(1)
+            mover.execute(action,robot)
+        
+
+        # Wait until the robot is done speaking
+        time.sleep(3)
+
+        # close the connection
+        robot.close()

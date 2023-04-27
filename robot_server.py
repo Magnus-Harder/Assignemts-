@@ -216,7 +216,7 @@ def server_program(robot):
     elif robot.ip == '192.168.1.106':
         port = 5020 # if port fails you have from 5020-5029
     elif robot.ip == '192.168.1.108':
-        port = 5030 # if port fails you have from 5030-5039
+        port = 5033 # if port fails you have from 5030-5039
 
     server_socket = socket.socket()  # get instance
     # Look closely. The bind() function takes tuple as argument

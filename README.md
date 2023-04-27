@@ -91,3 +91,8 @@ $ java -Dsun.java2d.opengl=true -jar server.jar -g -s 300 -t 180 -c "python sear
 ```
 
 See http://docs.oracle.com/javase/8/docs/technotes/guides/2d/flags.html for more information.
+
+
+# Magnus
+export PYTHONPATH=${PYTHONPATH}:/usr/local/bin/python-sdk/lib/python2.7/sitepackages
+export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:/usr/local/bin/python-sdk/lib

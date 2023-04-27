@@ -25,7 +25,7 @@ from domains.hospital import *
 from strategies.bfs import FrontierBFS
 from strategies.dfs import FrontierDFS
 from strategies.bestfirst import FrontierAStar, FrontierGreedy
-from robot_interface import RobotInterface
+from robot_interface import RobotClient
 
 from utils import read_line
 

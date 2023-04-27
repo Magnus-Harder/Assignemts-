@@ -3,6 +3,9 @@ import msgpack
 import time
 import math
 import sys
+import whisper
+
+model = whisper.load_model('base')
 
 """
 Using the robot agent type differs from previous agent types.
@@ -54,7 +57,7 @@ class RobotClient():
         elif self.ip == '192.168.1.106':
             port = 5020 # if port fails you have from 5020-5029
         elif self.ip == '192.168.1.108':
-            port = 5030 # if port fails you have from 5030-5039
+            port = 5033 # if port fails you have from 5030-5039
 
         self.host = socket.gethostname()  # as both code is running on same pc
         self.port = port  # socket server port number
@@ -78,6 +81,8 @@ class RobotClient():
                         'Push(E,E)': 0,
                         'Push(S,S)': 270,
                         'Push(W,W)': 180}
+        
+        self.direction = 0
 
     def forward(self,distance,block):
         """
@@ -287,7 +292,57 @@ class RobotClient():
         message = msgpack.packb(listen_cmd, use_bin_type=True)
         self.client_socket.send(message)
         data = self.client_socket.recv(1024)
+
+        text = model.transcribe(data)
+
+        return text
     
+    
+class Move_Robot:
+    def __init__(self, direction, move_distance=0.5):
+         self.direction = direction
+         self.direction_mapping = { 'Move(N)': 90,
+                        'Move(E)': 0,
+                        'Move(S)': 270,
+                        'Move(W)': 180,
+                        'Push(N,N)': 90,
+                        'Push(E,E)': 0,
+                        'Push(S,S)': 270,
+                        'Push(W,W)': 180}
+         self.move_distance = move_distance
+
+    def get_rotaiton(self, end_direction):
+    
+        to_rotate = end_direction - self.direction
+        if to_rotate > 180:
+            to_rotate = to_rotate - 360
+        elif to_rotate < -180:
+            to_rotate = to_rotate + 360
+        
+        # update direction
+        self.direction += to_rotate
+        self.direction = self.direction % 360
+
+        return to_rotate
+    
+    def speack_action(self,action,robot):
+        if action == 'None':
+            pass
+        else:
+            robot.say(action)
+
+    def execute(self,action,robot):
+        if action == 'None':
+            pass
+        else:
+            end_direction = self.direction_mapping[action]
+            rotation = self.get_rotaiton(end_direction)
+            self.speack_action(action,robot)
+            robot.turn(degrees(rotation),block=True)
+            robot.forward(self.move_distance,block=True)
+    
+
+
 
 
 
@@ -297,15 +352,30 @@ if __name__ == '__main__':
 
     # connect to the server and robot
     robot = RobotClient(ip)
-
-    # test the robots listening
-    #robot.listen(3, playback=True)
+    mover = Move_Robot(90)
 
     # test the robots speech
     robot.stand()
 
     #robot.say('I am executing plan. Please watch out!')
     robot.say('I am connected!')
+
+    # test the robots listening
+    #robot.listen(3, playback=True)
+    plan = [
+        'Move(N)',
+        'Move(W)',
+        'Move(N)',
+        'Push(E,E)',
+        'Move(S)',
+        'Move(S)',
+    ]
+
+    for action in plan:
+        time.sleep(1)
+        mover.execute(action,robot)
+
+    robot.say("Yes i just solved your level")
 
     # shutdown the robot
     robot.shutdown()
