@@ -90,6 +90,34 @@ def solution_graph_results(recognition_node, helper_action):
 
 
 def goal_recognition_agent_type(level, initial_state, action_library, goal_description, frontier):
+    
+    #STEPS
+    
+    action_set = [action_library]
+        
+    # Before writing algorithm, describe it in pseudocode and use that in video presentation.
+    # java -jar server.jar -g -s 400 -t 500 -c "python searchclient/searchclient.py -goalrecognition" -l levels/MAsimplegoalrecognition.lvl
+    
+    
+    # First, actor randomly chooses a goal and computes a random optimal plan for it
+    # - choose goal from level
+    # - construct optimal plan 
+    
+    # Simultaneously, helper runs all-optimal-plans (Not necessarily in parallel, actor can be first)
+    # - Run the all_optimal_plans from search_algorithms. Already imported.
+    
+    # Helper does AND-OR graph search (As above ex 3) (Take departure in iterative deepenening AND-OR graph search from MAvis2)
+    
+    # when helper finds solution, action execution starts.
+    
+    # In each step, actor chooses next step in plan (Or repeats previous if unsuccesful). Helper chooses corresponding action from own solution.
+    
+    # When actor reaches goal, new random goal chosen and start over. Completed goals should not be reconsidered by the actor or helper.
+    
+    # Benchmark on number of levels of own choosing. It's slow so start with smaller levels.
+    
+    # Test helpers ability to recognise goals and plan. Consider levels with single goal and multiple solutions.
+    
     # You should implement your goal recognition agent type here. You can take inspiration on how to structure the code
     # from your previous helper and non deterministic agent types.
     # Note: Similarly to the non deterministic agent type, this is not a fast algorithm and you should therefore start
@@ -106,6 +134,9 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
     
     r = all_optimal_plans(initial_state_mono, [action_library], possible_goals, frontier,
                           debug=True)
+    
+    and_or_graph_search(initial_state, action_set, goal_description)
+    
     print(r, file=sys.stderr)
     ## --------------- ##
     

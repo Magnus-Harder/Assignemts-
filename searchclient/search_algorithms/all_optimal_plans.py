@@ -38,7 +38,7 @@ class MultiParentNode:
     in the HospitalState class. For this reason, we here provide a wrapper class you can use for your ALL_OPTIMAL_PATHS
     search. More precisely, it provides the following additional members:
     - parents: A list of parents such that we can support each node having multiple parents
-    - actions: A list of all possible actions from this state.
+    - actions: A list of all :( possible :( [optimal] actions from this state.
     - optimal_actions_and_results: A map of actions into their resulting MultiParentNode.
         Note that these actions should be the subset of all possible actions, which occurs on some optimal plan.
     - consistent_goals: A set of GoalDescriptions which can contain the goal labelling.

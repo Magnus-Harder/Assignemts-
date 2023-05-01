@@ -294,35 +294,3 @@ ROBOT_ACTION_LIBRARY = [
     PushAction("W", "W"),
 ]
 
-
-ROBOT_ACTION_LIBRARY = [
-    NoOpAction(),
-    MoveAction("N"),
-    MoveAction("S"),
-    MoveAction("E"),
-    MoveAction("W"),
-    
-    # Add Push and Pull actions here
-    # Push actions (Cannot push box unto current agent position since this cell is not currently free)
-    PushAction("N", "N"),
-    PushAction("S", "S"),
-    PushAction("E", "E"),
-    PushAction("W", "W"),
-]
-
-
-ROBOT_ACTION_LIBRARY = [
-    NoOpAction(),
-    MoveAction("N"),
-    MoveAction("S"),
-    MoveAction("E"),
-    MoveAction("W"),
-    
-    # Add Push and Pull actions here
-    # Push actions (Cannot push box unto current agent position since this cell is not currently free)
-    PushAction("N", "N"),
-    PushAction("S", "S"),
-    PushAction("E", "E"),
-    PushAction("W", "W"),
-]
-
