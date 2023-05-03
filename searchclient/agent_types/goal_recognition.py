@@ -116,13 +116,8 @@ def results_goalrec(state, helper_action,state_2_node,coolor_actor):
     succesful_actions = []
     for goal in goals:
         actor_actions = node.get_actions_and_results_consistent_with_goal(goal)
-        #print("GOOOOOOOOODIIIIIEEEEESSSS",file=sys.stderr)
-        #print(actor_actions,file=sys.stderr)
-        #print(type(actor_actions),file=sys.stderr)
-        #print(helper_action,file=sys.stderr)
-        #print(type(helper_action),file=sys.stderr)
+        
         pos_opt_dirs = [dir[0] for dir in actor_actions]
-        #print(pos_opt_dirs,file=sys.stderr)
         for action in pos_opt_dirs:
             if state.is_applicable([action,helper_action]):
                 succesful_actions.append([action,helper_action])
@@ -130,17 +125,12 @@ def results_goalrec(state, helper_action,state_2_node,coolor_actor):
                 succesful_actions.append([GenericNoOp(),GenericNoOp()])
                 
         final_succesfulactions =  remove_identical_pairs(succesful_actions)
-        #print(final_succesfulactions,file=sys.stderr)
-        #print("BOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOIIIIIIIIIIIIIIIIIIIIIIIIIII",file=sys.stderr)
-        #print(state.result([GenericNoOp(),GenericNoOp()]),file=sys.stderr)
+
         
-        states = [state.result(actiones) for actiones in final_succesfulactions]
+    states = [state.result(actiones) for actiones in final_succesfulactions]
         
-        return states
-        #return([state.result(actiones) for actiones in final_succesfulactions])
-        #print(succesful_actions,file=sys.stderr)
-        #print(list(set(succesful_actions)),file=sys.stderr)
-        #return [state.results(sta) for sta in list(set(succesful_actions))]
+    return states
+
     
     """
     standard_case = state.result(helper_action)
@@ -174,13 +164,14 @@ def and_or_graph_search_helper(initial_state, action_set, goal_description, resu
         #print("APPLC: ", state.get_applicable_actions(action_set),file=sys.stderr)
         attempted_actions = []
         #print(state)
-        
+        #actor_pos_actions = dic_state2node(state).actions #Actions should be list of optimal actions
+        #TODO: Change so actor can only do optimal
         for action in deepcopy(state).get_applicable_actions(action_set):
             #print(action)
             #print("ACTION IS " + str(action),file=sys.stderr)
-            if action[1] in attempted_actions:
-                continue
-            attempted_actions.append(action[1])
+            #if action[1] in attempted_actions:
+            #    continue
+            #attempted_actions.append(action[1])
             # Note Plan is a policy
             path_for_plan = deepcopy(path) 
             path_for_plan.append(deepcopy(state))
@@ -194,7 +185,7 @@ def and_or_graph_search_helper(initial_state, action_set, goal_description, resu
             # See if plan is succesfull
             if plan != False:
                 # Add action to plan and return
-                plan[deepcopy(state)] = action[0]
+                plan[deepcopy(state)] = action[1]
                 return plan  
         
         # If no plan is found return false
@@ -276,7 +267,7 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
                           debug=False,ret_statdic = True)
     
     
-    worst_case_length, plan = and_or_graph_search_helper(initial_state, action_set, goals, results_goalrec, state2node_dict,actor_colorr = actor_color)
+    worst_case_length, plan = and_or_graph_search_helper(initial_state, [[GenericNoOp()],action_library], goals, results_goalrec, state2node_dict,actor_colorr = actor_color)
     print(plan,file=sys.stderr)
     """
     while all_goals_reached != True:
