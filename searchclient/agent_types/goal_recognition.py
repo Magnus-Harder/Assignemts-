@@ -103,12 +103,12 @@ def remove_identical_pairs(lst):
 
     return result
 
-def results_goalrec(state, helper_action,state_2_node,coolor_actor):
+def results_goalrec(state, helper_action,dic_state2node,coolor_actor):
     # Building the Results() function containing the indeterminism
     # If performing two of the same actions is possible from the state,
     # this result is added as a possible outcome..
     
-    
+    """
     state_mono = state.color_filter(coolor_actor)
     node = state_2_node[state_mono]
     
@@ -122,13 +122,23 @@ def results_goalrec(state, helper_action,state_2_node,coolor_actor):
             if state.is_applicable([action,helper_action]):
                 succesful_actions.append([action,helper_action])
             else:
-                succesful_actions.append([GenericNoOp(),GenericNoOp()])
+                succesful_actions.append([action,GenericNoOp()]) #TODO: remember me
                 
-        final_succesfulactions =  remove_identical_pairs(succesful_actions)
-
-        
+    final_succesfulactions =  remove_identical_pairs(succesful_actions)    
     states = [state.result(actiones) for actiones in final_succesfulactions]
         
+    """
+    states = []
+    state_mono = state.color_filter(coolor_actor)
+    node = dic_state2node[state_mono]
+    
+    for action,new_state in node.optimal_actions_and_results.items():
+        state_2 = state.result([GenericNoOp(),helper_action])
+        if state_2.is_applicable([action,GenericNoOp()]):
+            states.append(state.result([action,helper_action]))
+        else:
+            states.append(state)
+            
     return states
 
     
@@ -144,8 +154,7 @@ def and_or_graph_search_helper(initial_state, action_set, goal_description, resu
     #print("ACTION SET: ", action_set,file=sys.stderr)
     def Or_search(state,path,depth):
         
-        #print(state,file=sys.stderr)
-        #print(goal_description.is_goal(state),file=sys.stderr)
+        #check if goal is reached
         if goal_description.is_goal(state):
             return {}
 
@@ -160,24 +169,29 @@ def and_or_graph_search_helper(initial_state, action_set, goal_description, resu
         if depth == 0:
             return False
 
+        
+        #state_mono = state.color_filter(actor_colorr)
+        #node = dic_state2node[state_mono]
+        #print(action_set,file=sys.stderr)
+        #pos_actions = node.get_actions_and_results_consistent_with_goal()
+        
+        #action_set_2 = deepcopy(action_set)
+        #action_set_2 = [[pos_actions],action_set[1]]
+        
+        #print(action_set_2,file=sys.stderr)
         # loop over all actions
-        #print("APPLC: ", state.get_applicable_actions(action_set),file=sys.stderr)
-        attempted_actions = []
-        #print(state)
-        #actor_pos_actions = dic_state2node(state).actions #Actions should be list of optimal actions
         #TODO: Change so actor can only do optimal
-        for action in deepcopy(state).get_applicable_actions(action_set):
-            #print(action)
+        for action in deepcopy(state).get_applicable_actions([[GenericNoOp()], action_set[1]]):
             #print("ACTION IS " + str(action),file=sys.stderr)
             #if action[1] in attempted_actions:
             #    continue
             #attempted_actions.append(action[1])
             # Note Plan is a policy
-            path_for_plan = deepcopy(path) 
+            path_for_plan = deepcopy(path)
             path_for_plan.append(deepcopy(state))
 
             # Find the next states
-            new_states = results(deepcopy(state),action[1],dic_state2node,actor_colorr)
+            new_states = results(deepcopy(state),action[1], dic_state2node,coolor_actor = actor_colorr)
             
             # Get plan from And_search
             plan = And_search(new_states, path_for_plan, depth)
@@ -196,6 +210,9 @@ def and_or_graph_search_helper(initial_state, action_set, goal_description, resu
         new_depth = depth - 1 # Update depth for next Or-search call
         
         plan = {}
+        #print("pathpathpathpathpathpathpathpathpathpathpath",file=sys.stderr)
+        #print(path,file=sys.stderr)
+        #rint("pathpathpathpathpathpathpathpathpathpathpath",file=sys.stderr)
         planis = [Or_search(deepcopy(state),path,new_depth) for state in states]
         
         #Added cyclic case
@@ -232,7 +249,7 @@ def and_or_graph_search_helper(initial_state, action_set, goal_description, resu
         
         plan = Or_search(initial_state,[],d) # Find plan or fail at curr depth
         
-        if plan != False:
+        if plan != False or False:
             # Return Policy and worst case length
             for k, v in plan.items():
                 print(k,v,"\n",file=sys.stderr)
@@ -267,9 +284,10 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
                           debug=False,ret_statdic = True)
     
     
-    worst_case_length, plan = and_or_graph_search_helper(initial_state, [[GenericNoOp()],action_library], goals, results_goalrec, state2node_dict,actor_colorr = actor_color)
+    worst_case_length, plan = and_or_graph_search_helper(initial_state, action_set, goals, results_goalrec, state2node_dict,actor_colorr = actor_color)
     print(plan,file=sys.stderr)
-    """
+    
+    current_state = initial_state
     while all_goals_reached != True:
         cur_goal = random.choice(possible_goals)
         possible_goals.remove(cur_goal)
@@ -278,7 +296,7 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
         possible_actions = Mult_par_n.get_actions_and_results_consistent_with_goal(cur_goal)
         action,node = random.choice(possible_actions)
         #helper_plan = and_or_graph_search_helper(initial_state, action_set, goal_description, results, cur_root_node: MultiParentNode, dic_state2node: dict)
-        print(action,file=sys.stderr)
+        #print(action,file=sys.stderr)
         box_not_arrived = True
         
         #print(joint_action_to_string([action,"NoOp"]]), flush=True)
@@ -291,20 +309,30 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
             #print("nothing",file=sys.stderr)
             
             #HELPER CHOOSES AN ACTION
-            helper_choice = GenericNoOp()
+            helper_choice = plan[current_state]
             
-            
-            print(str(action) + "|" + str(helper_choice),flush=True)
+            print(joint_action_to_string([GenericNoOp(),helper_choice]), flush=True)
+            #print(str(action) + "|" + str(helper_choice),flush=True)
             _ = parse_response(read_line())
+            
+            print(joint_action_to_string([action,GenericNoOp()]), flush=True)
+            #print(str(action) + "|" + str(helper_choice),flush=True)
+            _ = parse_response(read_line())
+            
+            print(current_state, file=sys.stderr)
+            
+            current_state = current_state.result([action,helper_choice])
             
             #ACTOR CHOOSES AN ACTION
             choices = node.get_actions_and_results_consistent_with_goal(cur_goal)
             if len(choices) != 0:
                 action,node = random.choice(choices)
             else:
+                print("Done!",file=sys.stderr)
                 break
             #box_not_arrived = False
 
+            
             
             
 
@@ -330,6 +358,5 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
     ## --------------- ##
     
     #raise NotImplementedError()
-"""
 
 
