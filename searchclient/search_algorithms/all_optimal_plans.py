@@ -138,7 +138,7 @@ The function should return a pair (boolean, MultiParentNode) where:
     solution graph
 - if the search did not find a solution, the boolean should be False and the MultiParentNode should be None
 """
-def all_optimal_plans(initial_state, action_set, possible_goals, frontier, debug = False):
+def all_optimal_plans(initial_state, action_set, possible_goals, frontier, debug = False,ret_statdic = False):
     
     def backpropigate(node: MultiParentNode):
         if node.path_cost == 0:
@@ -197,6 +197,9 @@ def all_optimal_plans(initial_state, action_set, possible_goals, frontier, debug
             sol_graph = trerminate(goal_states)
             if debug:
                 visualize_solution_graph(sol_graph)
+            if ret_statdic:
+                return True, sol_graph,generated_states
+                
             return True, sol_graph
         ## ----------- ##
         
