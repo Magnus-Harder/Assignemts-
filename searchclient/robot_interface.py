@@ -3,10 +3,18 @@ import msgpack
 import time
 import math
 import sys
+<<<<<<< HEAD
 import whisper
 import random
 
 model = whisper.load_model('base')
+=======
+try:
+    import whisper
+    model = whisper.load_model('base')
+except:
+    print("Failed to import whisper.")
+>>>>>>> 498397228782a7ee42fef50b1cfcc8ea07cdf7e0
 
 """
 Using the robot agent type differs from previous agent types.
