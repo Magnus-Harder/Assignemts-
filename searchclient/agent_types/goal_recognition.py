@@ -197,6 +197,7 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
     ##-----------------
     ##--- MAIN LOOP ---
     ##-----------------
+    goals_done = []
     while len(possible_goals) != 0:
         #Setting and removing a goal, such that we can cycle through all goals one at a time
         cur_goal = random.choice(possible_goals)
@@ -204,6 +205,7 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
         
         #Agent receives current possible actions
         possible_actions = Mult_par_n.get_actions_and_results_consistent_with_goal(cur_goal)
+        print(possible_actions, file = sys.stderr)
         action,node = random.choice(possible_actions)
         
         ##Execute and or graph search with actor taking 'random' optimal path to chosen goal
@@ -235,8 +237,22 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
         
         ##Getting new plan and policy for the current state, ignoring completed goals
         new_state_mono = current_state.color_filter(actor_color)
-        bool,Mult_par_n,state2node_dict = all_optimal_plans(new_state_mono, action_set, possible_goals,
-                                                            frontier,debug=False,ret_statdic = True)
+        goals_done.append(deepcopy(cur_goal.goals[0]))
+        joint_goals = []
+        for remaining_goal in possible_goals:
+            new_olds = deepcopy(goals_done)
+            new_olds.append(remaining_goal.goals[0])
+            joint_goals.append(cur_goal.create_new_goal_description_of_same_type(new_olds))
+
+        possible_goals = joint_goals #Fuck
+        
+        bool,Mult_par_n,state2node_dict = all_optimal_plans(new_state_mono, action_set, joint_goals,
+                                                    frontier,debug=False,ret_statdic = True)
+        
+        if bool == False:
+            print("tough luck kid, better luck next time", file = sys.stderr)
+        # bool,Mult_par_n,state2node_dict = all_optimal_plans(new_state_mono, action_set, possible_goals,
+        #                                                     frontier,debug=False,ret_statdic = True)
         worst_case_length, plan = and_or_graph_search_helper(current_state, action_set, goals, results_goalrec, state2node_dict,actor_colorr = actor_color)
 
 
