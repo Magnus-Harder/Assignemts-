@@ -4,6 +4,7 @@ import time
 import math
 import sys
 import whisper
+import random
 
 model = whisper.load_model('base')
 
@@ -55,7 +56,7 @@ class RobotClient():
         elif self.ip == '192.168.1.105':
             port = 5010  # if port fails you have from 5010-5019
         elif self.ip == '192.168.1.106':
-            port = 5020 # if port fails you have from 5020-5029
+            port = 5021 # if port fails you have from 5020-5029
         elif self.ip == '192.168.1.108':
             port = 5033 # if port fails you have from 5030-5039
 
@@ -293,9 +294,23 @@ class RobotClient():
         self.client_socket.send(message)
         data = self.client_socket.recv(1024)
 
-        text = model.transcribe(data)
+        animations = [
+            "animations/Stand/Gestures/Thinking_1",
+            "animations/Stand/Gestures/Thinking_3",
+            "animations/Stand/Gestures/Thinking_4",
+            "animations/Stand/Gestures/Thinking_6",
+            "animations/Stand/Gestures/Thinking_8",
+        ]
 
-        return text
+        # når robotten starter med at lytte
+        robot.player.playFile("/opt/aldebaran/share/naoqi/wav/begin_reco.wav")
+        robot.leds.fadeRGB("FaceLeds", 0.0, 1.0, 0.0, 0.4)
+        robot.behavior.startBehavior(random.choice(animations))
+
+        # når robotten stopper med at lytte
+        robot.player.playFile("/opt/aldebaran/share/naoqi/wav/end_reco.wav")
+        robot.leds.fadeRGB("FaceLeds", 0.0, 0.0, 1.0, 0.4)
+
     
     
 class Move_Robot:

@@ -244,3 +244,4 @@ class HospitalState:
         That means that two states with identical positions but e.g. different parent will map to the same hash value.
         """
         return hash((tuple(self.agent_positions), tuple(self.box_positions)))
+    

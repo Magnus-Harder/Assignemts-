@@ -202,6 +202,7 @@ if __name__ == '__main__':
         if not robot_ip:
             raise ValueError("You must also specify which robot ip address to use when using the robot agent type!")
         try:
+            action_library = ROBOT_ACTION_LIBRARY
             robot_agent_type(level, initial_state, action_library, goal_description, frontier, robot_ip)
         except Exception as e:
             print("Robot agent terminated with error", e)

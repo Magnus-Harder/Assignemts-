@@ -1,11 +1,29 @@
 #%%
+import pickle
+
+with open('../test.pkl', 'rb') as f:
+    r = pickle.load(f)
+#%%
+
+with open('../policy.pkl', 'rb') as f:
+    policy = pickle.load(f)
+
+#%%
+
+with open('../test_stuff.pkl', 'rb') as f:
+    test_stuff = pickle.load(f)
+
+
+#%%
+
+
 #from robot_client import *
 import whisper
 import os
 # Load the model
 model = whisper.load_model('base')
 # Get transcription
-text = model.transcribe("../audiocapture.mp3")['text']
+text = model.transcribe("../tmp/test.wav")['text']
 text = text.lower()
 #%%
 def get_command(robot):

@@ -46,7 +46,7 @@ class RealRobot:
         
         if self.ip == '192.168.1.102':
             ssh.connect(hostname=self.ip, username="nao", password="salt")
-        elif self.ip == '192.168.1.105':
+        elif self.ip == '192.168.1.106':
             ssh.connect(hostname=self.ip, username="nao", password="pepper")
         elif self.ip == '192.168.1.106':
             ssh.connect(hostname=self.ip, username="nao", password="r2dtu")
@@ -214,7 +214,7 @@ def server_program(robot):
     elif robot.ip == '192.168.1.105':
         port = 5010  # if port fails you have from 5010-5019
     elif robot.ip == '192.168.1.106':
-        port = 5020 # if port fails you have from 5020-5029
+        port = 5021 # if port fails you have from 5020-5029
     elif robot.ip == '192.168.1.108':
         port = 5033 # if port fails you have from 5030-5039
 
