@@ -43,7 +43,7 @@ class DisjunctiveGoalDescription:
             if possible_goal.is_goal(belief_node.state):
                 return True
         return False
-
+    
 
 class GoalRecognitionNode:
     """
@@ -76,7 +76,7 @@ class GoalRecognitionNode:
         # Here we are only interested in the actions of the helper, but state.get_applicable_actions will return a list
         # of joint actions, where the actor action is always GenericNoOp().
         applicable_joint_actions = self.state.get_applicable_actions(action_set)
-        applicable_actions = [joint_action[HELPER_AGENT] for joint_action in applicable_joint_actions]
+        applicable_actions = set([joint_action[HELPER_AGENT] for joint_action in applicable_joint_actions])
         return applicable_actions
 
     def result(self, joint_action):
@@ -86,6 +86,7 @@ class GoalRecognitionNode:
 
         # cheack if the applicability of the joint action is correct
         if not self.state.is_applicable(joint_action):
+            
             # agents action is not applicable agent does nothing
             new_state = self.state.result((self.NoOp,joint_action[HELPER_AGENT]))
 
@@ -97,6 +98,15 @@ class GoalRecognitionNode:
         # Get the new state and solution graph
         new_state = self.state.result(joint_action)
         new_solution_graph = self.solution_graph.optimal_actions_and_results[joint_action[actor_AGENT]]
+
+        # actor_action = joint_action[actor_AGENT]
+        # if actor_action.is_applicable(actor_AGENT,self.state):
+        #     new_state = self.state.result(joint_action)
+        #     new_solution_graph = self.solution_graph.optimal_actions_and_results[joint_action[actor_AGENT]]
+        # else:
+        #     actor_action = self.NoOp
+        #     new_state = self.state.result((actor_action,joint_action[HELPER_AGENT]))
+        #     new_solution_graph = self.solution_graph
 
         return GoalRecognitionNode(new_state, new_solution_graph,self.NoOp)
 
@@ -120,6 +130,16 @@ def solution_graph_results(recognition_node, helper_action):
 
     return results
 
+    # outcomes = []
+    # for action in recognition_node.solution_graph.optimal_actions_and_results.keys():
+    #     joint_action = (action,helper_action)
+    #     if recognition_node.state.is_conflicting(joint_action):
+    #         outcomes.append(recognition_node)
+
+    #     else:
+    #         outcomes.append(recognition_node.result(joint_action))
+
+    # return outcomes
 
 
 
@@ -145,10 +165,10 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
         
         planis = [OR_search(state,plan,visited,new_depth) for state in states]
 
-        if all(plani != False for plani in planis) and all(plani != "loop" for plani in planis):
+        if all(plani != False for plani in planis): #and all(plani != "loop" for plani in planis):
             for plani in planis:
-                if plani != "loop":
-                    plan.update(plani)
+                #if plani != "loop":
+                plan.update(plani)
             return plan
         else:
             return False
@@ -161,16 +181,16 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
             return {}
         
         if depth == 0:
-            print(state.state)
+            #print(state.state)
             return False
         
         # If State is in the plan, then we return False, since we have reached a loop.
         if state in plan.keys():
-            return "loop"
+            return False
 
         # If State is in the visited list, then we return False, since we have reached a loop.
         if state in visited:
-            return "loop"
+            return False
         
         visited.append(state)
         # If the state is not a goal state, then we continue the search.
@@ -200,7 +220,7 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
 
     Initial_GoalrecognitionNode = GoalRecognitionNode(initial_state, solution_graph, action_library[0])
 
-    for d in range(5,6):
+    for d in range(5,100):
         print("Depth: ",d)
         policy = OR_search(Initial_GoalrecognitionNode,{},[],d)
 

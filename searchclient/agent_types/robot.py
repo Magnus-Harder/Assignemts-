@@ -35,8 +35,8 @@ from utils import *
 from robot_interface import *
 from domains.hospital.actions import *
 from search_algorithms.graph_search import graph_search
-#from search_algorithms.all_optimal_plans import all_optimal_plans
-#from agent_types.goal_recognition import GoalRecognitionAgent, GoalRecognitionNode
+from search_algorithms.all_optimal_plans import all_optimal_plans
+from agent_types.goal_recognition import goal_recognition_agent_type, DisjunctiveGoalDescription
 import time
 
 # Load the whisper model
@@ -82,7 +82,7 @@ class Move_Robot:
         else:
             end_direction = self.direction_mapping[action.name]
             rotation = self.get_rotaiton(end_direction)
-            robot.declare_action(action.name)
+            robot.declare_direction(action.name)
             robot.turn(degrees(rotation),block=True)
             robot.forward(self.move_distance,block=True)
 
@@ -101,24 +101,24 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
     Mover = Move_Robot(90)
 
     def listen(robot):
-        animations = [
-            "animations/Stand/Gestures/Thinking_1",
-            "animations/Stand/Gestures/Thinking_3",
-            "animations/Stand/Gestures/Thinking_4",
-            "animations/Stand/Gestures/Thinking_6",
-            "animations/Stand/Gestures/Thinking_8",
-        ]
+        # animations = [
+        #     "animations/Stand/Gestures/Thinking_1",
+        #     "animations/Stand/Gestures/Thinking_3",
+        #     "animations/Stand/Gestures/Thinking_4",
+        #     "animations/Stand/Gestures/Thinking_6",
+        #     "animations/Stand/Gestures/Thinking_8",
+        # ]
 
-        # når robotten starter med at lytte
-        robot.player.playFile("/opt/aldebaran/share/naoqi/wav/begin_reco.wav")
-        robot.leds.fadeRGB("FaceLeds", 0.0, 1.0, 0.0, 0.4)
-        robot.behavior.startBehavior(random.choice(animations))
+        # # når robotten starter med at lytte
+        # robot.player.playFile("/opt/aldebaran/share/naoqi/wav/begin_reco.wav")
+        # robot.leds.fadeRGB("FaceLeds", 0.0, 1.0, 0.0, 0.4)
+        # robot.behavior.startBehavior(random.choice(animations))
 
         audio = robot.listen(5)
 
-        # når robotten stopper med at lytte
-        robot.player.playFile("/opt/aldebaran/share/naoqi/wav/end_reco.wav")
-        robot.leds.fadeRGB("FaceLeds", 0.0, 0.0, 1.0, 0.4)
+        # # når robotten stopper med at lytte
+        # robot.player.playFile("/opt/aldebaran/share/naoqi/wav/end_reco.wav")
+        # robot.leds.fadeRGB("FaceLeds", 0.0, 0.0, 1.0, 0.4)
 
         text = model.transcribe("tmp/test.wav")['text']
 
@@ -154,6 +154,7 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
                 return action
             else:
                 robot.say("Move Command is missing a direction. Please try again.")
+                time.sleep(5)
                 return get_command(robot)
         elif "push" in text:
             if "north" in text:
@@ -170,63 +171,112 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
                 return action
             else:
                 robot.say("Push Command is missing a direction. Please try again.")
+                time.sleep(5)
                 return get_command(robot)
         
         # State possible subgoals
-        elif "subgoal" in text:
+        elif "sub" in text or "goal" in text:
             return "subgoal"
         else:
             robot.say("Command not recognized. Please try again.")
+            time.sleep(5)
             return get_command(robot)
 
     def interpret_action(robot):
+        
+        robot.say("I am listeing")
 
+        text = listen(robot)
+        
+        if "move" in text:
+            if "north" in text:
+                action = "Move(N)"
+                return action
+            elif "south" in text:
+                action = "Move(S)"
+                return action
+            elif "east" in text:
+                action = "Move(E)"
+                return action
+            elif "west" in text:
+                action = "Move(W)"
+                return action
+            else:
+                robot.say("Move Command is missing a direction. Please try again.")
+                return interpret_action(robot)
+        elif "push" in text:
+            if "north" in text:
+                action = "Push(N,N)"
+                return action
+            elif "south" in text:
+                action = "Push(S,S)"
+                return action
+            elif "east" in text:
+                action = "Push(E,E)"
+                return action
+            elif "west" in text:
+                action = "Push(W,W)"
+                return action
+            else:
+                robot.say("Push Command is missing a direction. Please try again.")
+                return interpret_action(robot)
 
-
-
-
-        return None
+        robot.say("Command not recognized. Please try again.")
+        return interpret_action(robot)
 
     def Helper_mode(robot):
         robot.say("Following your level i will search for a solution to help you!")
 
-        helper_succes,robot_policy,Initial_robot_state = None,None,None#GoalRecognitionAgent(level, action_set, goal_description, frontier)
+        succes, policy = goal_recognition_agent_type(initial_state, action_library, goal_description, frontier)
 
-        if helper_succes is False:
+        possible_goals = [goal_description.get_sub_goal(index) for index in range(goal_description.num_sub_goals())]
+
+        goals = DisjunctiveGoalDescription(possible_goals)
+
+        state = initial_state
+
+        if succes is False:
             robot.say("I am unable to help you. Solution strategy not found.")
-
-            # Define the robot client and the move robot class
-            Command_mode = True
-            while Command_mode:
-
-                # Get the command from the user
-                robot.say("Please give me a command")
-                command = get_command(robot)
-            
-
-                # Break out of the loop if the command is true
-                if command == True:
-                    Command_mode = False
-                else:
-                    mover.execute(command,robot)
-
         else:
-            Mover = Move_Robot(90)
-            robot.say("I am ready to help you. I will follow Your Moves")
+            while len(possible_goals) > 0:
+            
+                robot.say("I am ready to help you. I will follow Your Moves")
 
-            robot.say("Please declare your first action")
+                while not any(pos.is_goal(state) for pos in possible_goals):
+                    robot.say("Declare your action")
+                    
+                    agent_action = action_dict[interpret_action(robot)]
+                    helper_action = policy[state]
 
-            agent_action = interpret_action(robot)
-            helper_action = robot_policy[Initial_robot_state]
+                    if state.is_applicable((agent_action,helper_action)) is False:
+                        robot.say("This action is not applicable. Please try again.")
+                        continue
 
-            Mover.execute(helper_action,robot)
+                    joint_action = (agent_action, helper_action)
+
+                    robot.say("I will execute my the action")
+                    Mover.execute(helper_action,robot)
 
 
-            # Update the state of the robot
-            Initial_robot_state = helper_action.result((agent_action,helper_action))
+                    state = state.result(joint_action)
 
+                
+                robot.say("We have reached a subgoal. I will now search for a new solution")
+                possible_goals = [pos for pos in possible_goals if not pos.is_goal(state)]
 
-        return None
+                if len(possible_goals) == 0:
+                    robot.say("We have reached the final goal. Congratulations!")
+                    return None
+                else:
+
+                    policy = goal_recognition_agent_type(state, action_library, None, frontier, sub_goals=possible_goals)
+                    if policy is False:
+                        robot.say("I am unable to further help you. Solution strategy not found.")
+                        return None
+                    else:
+                        robot.say("I have found a new solution. Let's continue")
+                        continue
+
     
     def subgoal_mode(robot):
         #State subgoals
@@ -274,7 +324,7 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
                 break
             action, solution_graph = solution_graph.get_actions_and_results_consistent_with_goal(sub_goal)[0]
 
-            robot.declare_action(action)
+
             Mover.execute(action,robot)
 
         return None
@@ -294,12 +344,11 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
             # Break out of the loop if the command is true
             if action is True:
                 stop = True
-            if action is "subgoal":
+            if action == "subgoal":
                 subgoal_mode(robot)
             else:
                 # declare the action and Move
                 action = action_dict[action]
-                robot.declare_action(action)
                 Mover.execute(action,robot)
 
         return None
@@ -315,13 +364,12 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
             return
         
         print(f"Found solution of length {len(plan)}", file=sys.stderr)
-
+        print(plan)
 
         # Execute the plan
-        for action in plan:
+        for action in plan[0]:
 
             # declare the action
-            robot.declare_action(action.name)
             Mover.execute(action,robot)
         
         robot.say("I have reached the goal")
@@ -358,6 +406,7 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
             return None 
         else:
             robot.say("Mode not recognized. Please try again.")
+            time.sleep(10)
             return Interpret_mode(robot) 
 
 

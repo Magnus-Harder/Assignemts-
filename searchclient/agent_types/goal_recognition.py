@@ -169,7 +169,7 @@ def and_or_graph_search_helper(initial_state, action_set, goal_description, resu
 
 
 #Goal Recognition using AND-OR Graph Search and a helper
-def goal_recognition_agent_type(level, initial_state, action_library, goal_description, frontier): #Why is there a fronteir?
+def goal_recognition_agent_type(level, initial_state, action_library, goal_description, frontier, sub_goals = None): #Why is there a fronteir?
     
 
     #Initializing values needed for all_optimal_plans
@@ -182,7 +182,11 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
     for index in range(goal_mono.num_sub_goals()):
         sub_goal = goal_mono.get_sub_goal(index)
         possible_goals.append(sub_goal)
-    
+
+    if sub_goals != None:
+        possible_goals = sub_goals
+
+
     #Running all_optimal_plans
     goals = DisjunctiveGoalDescription(possible_goals)
     bool,Mult_par_n,state2node_dict = all_optimal_plans(initial_state_mono, action_set, possible_goals, frontier,
@@ -193,6 +197,8 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
     
     #Setting the state so we can keep track of changes to the state
     current_state = initial_state
+
+    return plan 
     
     ##-----------------
     ##--- MAIN LOOP ---

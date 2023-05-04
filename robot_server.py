@@ -44,11 +44,11 @@ class RealRobot:
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.load_system_host_keys()
         
-        if self.ip == '192.168.1.102':
+        if self.ip == '192.168.1.104':
             ssh.connect(hostname=self.ip, username="nao", password="salt")
         elif self.ip == '192.168.1.106':
             ssh.connect(hostname=self.ip, username="nao", password="pepper")
-        elif self.ip == '192.168.1.106':
+        elif self.ip == '192.168.1.110':
             ssh.connect(hostname=self.ip, username="nao", password="r2dtu")
         elif self.ip == '192.168.1.108':
             ssh.connect(hostname=self.ip, username="nao", password="Sokrates1")
@@ -209,15 +209,16 @@ def server_program(robot):
     host = socket.gethostname()
 
     # Base port number for all robots off of ip address
-    if robot.ip == '192.168.1.100':
-        port = 5001  # if port fails you have from 5000-5009
-    elif robot.ip == '192.168.1.105':
-        port = 5010  # if port fails you have from 5010-5019
+    if robot.ip == '192.168.1.104':
+        port = 5007  # if port fails you have from 5000-5009
     elif robot.ip == '192.168.1.106':
-        port = 5021 # if port fails you have from 5020-5029
+        port = 5017  # if port fails you have from 5010-5019
+    elif robot.ip == '192.168.1.110':
+        port = 5042 # if port fails you have from 5020-5029
     elif robot.ip == '192.168.1.108':
-        port = 5033 # if port fails you have from 5030-5039
+        port = 5000 # if port fails you have from 5030-5039
 
+    print(port)
     server_socket = socket.socket()  # get instance
     # Look closely. The bind() function takes tuple as argument
    

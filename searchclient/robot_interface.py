@@ -51,14 +51,15 @@ class RobotClient():
         
         '''
 
-        if self.ip == '192.168.1.102':
-            port = 5001  # if port fails you have from 5000-5009
-        elif self.ip == '192.168.1.105':
-            port = 5010  # if port fails you have from 5010-5019
+        if self.ip == '192.168.1.104':
+            port = 5007  # if port fails you have from 5000-5009
         elif self.ip == '192.168.1.106':
+            port = 5017  # if port fails you have from 5010-5019
+        elif self.ip == '192.168.1.107':
             port = 5021 # if port fails you have from 5020-5029
         elif self.ip == '192.168.1.108':
             port = 5033 # if port fails you have from 5030-5039
+
 
         self.host = socket.gethostname()  # as both code is running on same pc
         self.port = port  # socket server port number
@@ -258,7 +259,7 @@ class RobotClient():
                      'Push(E,E)': 'I am pushing East',
                      'Push(S,S)': 'I am pushing South',
                      'Push(W,W)': 'I am pushing West'}
-        return robot.say(direction[move])
+        return self.say(direction[move])
     
     def listen(self, duration=3, channels=[0,0,1,0],playback=False):
 
@@ -294,22 +295,22 @@ class RobotClient():
         self.client_socket.send(message)
         data = self.client_socket.recv(1024)
 
-        animations = [
-            "animations/Stand/Gestures/Thinking_1",
-            "animations/Stand/Gestures/Thinking_3",
-            "animations/Stand/Gestures/Thinking_4",
-            "animations/Stand/Gestures/Thinking_6",
-            "animations/Stand/Gestures/Thinking_8",
-        ]
+        # animations = [
+        #     "animations/Stand/Gestures/Thinking_1",
+        #     "animations/Stand/Gestures/Thinking_3",
+        #     "animations/Stand/Gestures/Thinking_4",
+        #     "animations/Stand/Gestures/Thinking_6",
+        #     "animations/Stand/Gestures/Thinking_8",
+        # ]
 
-        # når robotten starter med at lytte
-        robot.player.playFile("/opt/aldebaran/share/naoqi/wav/begin_reco.wav")
-        robot.leds.fadeRGB("FaceLeds", 0.0, 1.0, 0.0, 0.4)
-        robot.behavior.startBehavior(random.choice(animations))
+        # # når robotten starter med at lytte
+        # robot.player.playFile("/opt/aldebaran/share/naoqi/wav/begin_reco.wav")
+        # robot.leds.fadeRGB("FaceLeds", 0.0, 1.0, 0.0, 0.4)
+        # robot.behavior.startBehavior(random.choice(animations))
 
-        # når robotten stopper med at lytte
-        robot.player.playFile("/opt/aldebaran/share/naoqi/wav/end_reco.wav")
-        robot.leds.fadeRGB("FaceLeds", 0.0, 0.0, 1.0, 0.4)
+        # # når robotten stopper med at lytte
+        # robot.player.playFile("/opt/aldebaran/share/naoqi/wav/end_reco.wav")
+        # robot.leds.fadeRGB("FaceLeds", 0.0, 0.0, 1.0, 0.4)
 
     
     
