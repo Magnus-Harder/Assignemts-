@@ -54,11 +54,11 @@ class RobotClient():
         if self.ip == '192.168.1.104':
             port = 5007  # if port fails you have from 5000-5009
         elif self.ip == '192.168.1.106':
-            port = 5017  # if port fails you have from 5010-5019
+            port = 5012  # if port fails you have from 5010-5019
         elif self.ip == '192.168.1.107':
             port = 5021 # if port fails you have from 5020-5029
         elif self.ip == '192.168.1.108':
-            port = 5033 # if port fails you have from 5030-5039
+            port = 5034 # if port fails you have from 5030-5039
 
 
         self.host = socket.gethostname()  # as both code is running on same pc
