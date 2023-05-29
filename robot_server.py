@@ -212,11 +212,11 @@ def server_program(robot):
     if robot.ip == '192.168.1.104':
         port = 5007  # if port fails you have from 5000-5009
     elif robot.ip == '192.168.1.106':
-        port = 5017  # if port fails you have from 5010-5019
+        port = 5012  # if port fails you have from 5010-5019
     elif robot.ip == '192.168.1.110':
         port = 5042 # if port fails you have from 5020-5029
     elif robot.ip == '192.168.1.108':
-        port = 5000 # if port fails you have from 5030-5039
+        port = 5034 # if port fails you have from 5030-5039
 
     print(port)
     server_socket = socket.socket()  # get instance
