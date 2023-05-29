@@ -1,0 +1,21 @@
+#domain
+hospital
+#levelname
+MAsimplegoalrecognition
+#colors
+red: 0, A, B
+#initial
++++++++
++ +0+++
++   + +
++A   B+
++ +++++
++++++++
+#goal
++++++++
++ + +++
++   +B+
++     +
++A+++++
++++++++
+#end
