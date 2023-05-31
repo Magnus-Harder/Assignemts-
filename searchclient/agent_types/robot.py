@@ -44,7 +44,7 @@ import whisper
 model = whisper.load_model('base')
 
 class Move_Robot:
-    def __init__(self, direction, move_distance=0.5):
+    def __init__(self, direction, move_distance=0.50):
          self.direction = direction
          self.direction_mapping = { 'Move(N)': 90,
                         'Move(E)': 0,
@@ -77,8 +77,8 @@ class Move_Robot:
             robot.say(action)
 
     def execute(self,action,robot):
-        if action == 'None':
-            pass
+        if action == 'None' or action.name == "NoOp":
+            time.sleep(1.5)
         else:
             end_direction = self.direction_mapping[action.name]
             rotation = self.get_rotaiton(end_direction)
@@ -98,7 +98,7 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
     action_dict = {action.name: action for action in action_library}
 
     # define the mover
-    Mover = Move_Robot(90)
+    Mover = Move_Robot(270)
 
     def listen(robot):
         # animations = [
@@ -139,7 +139,7 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
             robot.say("Restate your command")
             return get_command(robot)
 
-        if "move" in text:
+        if "move" in text or "m" in text:
             if "north" in text:
                 action = "Move(N)"
                 return action
@@ -156,7 +156,7 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
                 robot.say("Move Command is missing a direction. Please try again.")
                 time.sleep(5)
                 return get_command(robot)
-        elif "push" in text:
+        elif "push" in text or "p" in text:
             if "north" in text:
                 action = "Push(N,N)"
                 return action
@@ -185,10 +185,15 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
     def interpret_action(robot):
         
         robot.say("I am listeing")
+        time.sleep(1.5)
 
         text = listen(robot)
+
+        if "break" in text:
+            robot.say("No command was given mode")
+            return True
         
-        if "move" in text:
+        if "move" in text or "mo" in text:
             if "north" in text:
                 action = "Move(N)"
                 return action
@@ -203,8 +208,9 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
                 return action
             else:
                 robot.say("Move Command is missing a direction. Please try again.")
+                time.sleep(5)
                 return interpret_action(robot)
-        elif "push" in text:
+        elif "push" in text or "pu" in text:
             if "north" in text:
                 action = "Push(N,N)"
                 return action
@@ -219,15 +225,25 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
                 return action
             else:
                 robot.say("Push Command is missing a direction. Please try again.")
+                time.sleep(5)
                 return interpret_action(robot)
 
         robot.say("Command not recognized. Please try again.")
+        time.sleep(1.5)
         return interpret_action(robot)
 
     def Helper_mode(robot):
-        robot.say("Following your level i will search for a solution to help you!")
+        
+        robot.say("Solving strategy")
 
-        succes, policy = goal_recognition_agent_type(initial_state, action_library, goal_description, frontier)
+        policy = goal_recognition_agent_type(level, initial_state, action_library, goal_description, frontier)
+
+        if policy is False:
+            robot.say("I am unable to help you. Solution strategy not found.")
+            return None
+        else:
+            print("I am ready to help you. I will follow Your Moves")
+        
 
         possible_goals = [goal_description.get_sub_goal(index) for index in range(goal_description.num_sub_goals())]
 
@@ -235,108 +251,126 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
 
         state = initial_state
 
-        if succes is False:
-            robot.say("I am unable to help you. Solution strategy not found.")
-        else:
-            while len(possible_goals) > 0:
+
+        print(state)
+        print(any([sub_goal.is_goal(state) for sub_goal in possible_goals]))
+
+    
+
+        while True:
+            robot.say("Declare your action")
+            time.sleep(1)
             
-                robot.say("I am ready to help you. I will follow Your Moves")
+            agent_action = action_dict[interpret_action(robot)]
+            helper_action = policy[state]
 
-                while not any(pos.is_goal(state) for pos in possible_goals):
-                    robot.say("Declare your action")
-                    
-                    agent_action = action_dict[interpret_action(robot)]
-                    helper_action = policy[state]
-
-                    if state.is_applicable((agent_action,helper_action)) is False:
-                        robot.say("This action is not applicable. Please try again.")
-                        continue
-
-                    joint_action = (agent_action, helper_action)
-
-                    robot.say("I will execute my the action")
-                    Mover.execute(helper_action,robot)
+            # if state.is_applicable((agent_action,helper_action)) is False:
+            #     robot.say("This action is not applicable. Please try again.")
+            #     time.sleep(2.5)
+            #     continue
 
 
-                    state = state.result(joint_action)
+            joint_action = (agent_action, helper_action)
+            print(joint_action)
+            print(type(helper_action), helper_action.name)
+            robot.say(f"I will execute my action {helper_action}, proceed with your action")
 
-                
-                robot.say("We have reached a subgoal. I will now search for a new solution")
-                possible_goals = [pos for pos in possible_goals if not pos.is_goal(state)]
+            Mover.execute(helper_action,robot)
 
-                if len(possible_goals) == 0:
-                    robot.say("We have reached the final goal. Congratulations!")
-                    return None
-                else:
 
-                    policy = goal_recognition_agent_type(state, action_library, None, frontier, sub_goals=possible_goals)
-                    if policy is False:
-                        robot.say("I am unable to further help you. Solution strategy not found.")
-                        return None
-                    else:
-                        robot.say("I have found a new solution. Let's continue")
-                        continue
+            state = state.result(joint_action)
+        
+            if any([sub_goal.is_goal(state) for sub_goal in possible_goals]):
+                robot.say("We have reached a subgoal")
+                break
+
+        return None
 
     
     def subgoal_mode(robot):
         #State subgoals
         possible_subgoals = [goal_description.get_sub_goal(index) for index in range(goal_description.num_sub_goals())]
-        solved,solution_graph = all_optimal_plans(initial_state, action_set, possible_subgoals, frontier,debug=True)
-        
-        if not solved:
+
+        action_set = [action_library,action_library]
+        all_goals_reached = False
+        actor_color = level.colors[str(0)]
+        goal_mono = goal_description.color_filter(actor_color)
+        initial_state_mono = initial_state.color_filter(actor_color)
+        possible_goals = [] #List of sub-goals for the actor
+        for index in range(goal_mono.num_sub_goals()):
+            sub_goal = goal_mono.get_sub_goal(index)
+            possible_goals.append(sub_goal)
+
+        print(possible_subgoals)
+
+
+        bool,Mult_par_n,state2node_dict = all_optimal_plans(initial_state_mono, action_set, possible_goals, frontier,
+                          debug=False,ret_statdic = True)
+
+        print(bool)
+        if not bool:
             print("Unable to solve level.", file=sys.stderr)
+            return None
             return Command_mode(robot)
         
-        sub_goals = solution_graph.consistent_goals
 
+
+        sub_goals = Mult_par_n.consistent_goals
+        solution_graph = Mult_par_n
         
         robot.say(f"I have found the following {len(sub_goals)} subgoals")
 
         sub_goals_key = {}
 
         for sub_goal in sub_goals:
-            sub_goals_key[sub_goal[1]] = sub_goal
-            robot.say(f"Box {sub_goal[1]} moved to position {sub_goal[0]}" )
+            Place,Box,_ = eval(sub_goal.__repr__())
+            sub_goals_key[Box] = sub_goal
+            print(f" Box {Box} moved to position {Place}")
+            robot.say(f" Box {Box} moved to position {Place}")
+            time.sleep(3)
 
-      
         #get input 
         sub_goal = None
         while True:
+            print("Please choose a subgoal")
             robot.say("Please choose a subgoal")
-            robot.say("I am listeing")
-            time.sleep(1.5)
+            time.sleep(3)
             text = listen(robot)
 
+            print(text)
             for key in sub_goals_key.keys():
-                if key in text:
+                if key.lower() in text:
                     sub_goal = sub_goals_key[key]
+                    print(f"Executing subgoal {key}")
                     robot.say(f"Executing subgoal {key}")
+                    break
 
             if sub_goal is None:
+                print("Subgoal not recognized. Please try again.")
                 robot.say("Subgoal not recognized. Please try again.") 
             else:
                 break         
 
         #output action sequence
         while True:
-            if len(solution_graph.get_actions_and_results_consistent_with_goal(sub_goal)) == 0:
-                robot.say("Subgoal Reached")
+            if sub_goal.is_goal(solution_graph.state):
+                print("Subgoal Reached, returning to command mode")
+                robot.say("Subgoal Reached, returning to command mode")
+                Command_mode(robot)
                 break
+
             action, solution_graph = solution_graph.get_actions_and_results_consistent_with_goal(sub_goal)[0]
-
-
             Mover.execute(action,robot)
+            print(action)
+                   
+
 
         return None
-
-
-        
 
         
 
     def Command_mode(robot):
 
-        robot.say("Entering Command mode loop")
         stop = False
         while not stop:
             action = get_command(robot)
@@ -356,7 +390,7 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
 
     # Define the solve mode
     def solve_mode(robot):
-    
+        robot.say("Entering solve mode loop")
         planning_success, plan = graph_search(initial_state, action_set, goal_description, frontier)
 
         if not planning_success:
@@ -367,10 +401,10 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
         print(plan)
 
         # Execute the plan
-        for action in plan[0]:
+        for action in plan:
 
             # declare the action
-            Mover.execute(action,robot)
+            Mover.execute(action[0],robot)
         
         robot.say("I have reached the goal")
 
@@ -417,8 +451,14 @@ def robot_agent_type(level, initial_state, action_library, goal_description, fro
     
 
 
-    Mode = Interpret_mode(robot)
+    #Mode = Interpret_mode(robot)
 
+    #subgoal_mode(robot)
+
+    Helper_mode(robot)
+
+
+        
 
         
 

@@ -44,14 +44,19 @@ class RealRobot:
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.load_system_host_keys()
         
-        if self.ip == '192.168.1.104':
-            ssh.connect(hostname=self.ip, username="nao", password="salt")
-        elif self.ip == '192.168.1.106':
+        if self.ip == '192.168.1.106':
+            ssh.connect(hostname=self.ip, username="nao", password="pepper")
+        elif self.ip == '172.20.10.13':
             ssh.connect(hostname=self.ip, username="nao", password="pepper")
         elif self.ip == '192.168.1.110':
-            ssh.connect(hostname=self.ip, username="nao", password="r2dtu")
+            ssh.connect(hostname=self.ip, username="nao", password="pepper")
         elif self.ip == '192.168.1.108':
-            ssh.connect(hostname=self.ip, username="nao", password="Sokrates1")
+            ssh.connect(hostname=self.ip, username="nao", password="r2dtu")
+
+        #pepper
+        #salt
+        #r2dtu
+        #Sokrates1
 
         self.scp = SCPClient(ssh.get_transport())
 
@@ -73,6 +78,11 @@ class RealRobot:
         self.system = naoqi.ALProxy("ALSystem", ip, 9559)
         self.pm = naoqi.ALProxy("ALPreferenceManager", ip, 9559)
         self.touch = naoqi.ALProxy("ALTouch", ip, 9559)
+
+        # Alive Proxy
+        self.alive = naoqi.ALProxy("ALBasicAwareness", ip, 9559)
+        
+        self.alive.setEnabled(False)
 
 
         # Setting collision protection False (will interfere with motion based ALProxies if True)
@@ -209,14 +219,9 @@ def server_program(robot):
     host = socket.gethostname()
 
     # Base port number for all robots off of ip address
-    if robot.ip == '192.168.1.104':
-        port = 5007  # if port fails you have from 5000-5009
-    elif robot.ip == '192.168.1.106':
-        port = 5012  # if port fails you have from 5010-5019
-    elif robot.ip == '192.168.1.110':
-        port = 5042 # if port fails you have from 5020-5029
-    elif robot.ip == '192.168.1.108':
-        port = 5034 # if port fails you have from 5030-5039
+    if robot.ip == '192.168.1.110':
+        port = 5003  # if port fails you have from 5000-5009
+
 
     print(port)
     server_socket = socket.socket()  # get instance

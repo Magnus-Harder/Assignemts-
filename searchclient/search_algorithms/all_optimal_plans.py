@@ -231,7 +231,7 @@ def all_optimal_plans(initial_state, action_set, possible_goals, frontier, debug
                         last_goal_depth = child.path_cost
                         #print(last_goal_depth, file=sys.stderr)
         
-    return False, None #Failure to find a solution
+    return False,None, None #Failure to find a solution
 
 
 # A global variable used to keep track of the start time of the current search

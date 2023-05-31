@@ -145,7 +145,7 @@ def and_or_graph_search_helper(initial_state, action_set, goal_description, resu
     mulipl = 1
     start_t = time()
     ## Iterative deepening search missing from prev. implementation
-    depth_budget = int(10) ## Should be inf, but don't want to waste time with unreasonable searches
+    depth_budget = int(20) ## Should be inf, but don't want to waste time with unreasonable searches
     for d in range(depth_budget):
         if d%mulipl == 0:
             print(f"Searching depth of [{d}] after {int(time()-start_t)}s", file=sys.stderr)
@@ -191,7 +191,7 @@ def goal_recognition_agent_type(level, initial_state, action_library, goal_descr
     goals = DisjunctiveGoalDescription(possible_goals)
     bool,Mult_par_n,state2node_dict = all_optimal_plans(initial_state_mono, action_set, possible_goals, frontier,
                           debug=False,ret_statdic = True)
-    
+    print(bool)
     #Using values from all_optimal_plans to do and_or_graph_search
     worst_case_length, plan = and_or_graph_search_helper(initial_state, action_set, goals, results_goalrec, state2node_dict,actor_colorr = actor_color)
     
